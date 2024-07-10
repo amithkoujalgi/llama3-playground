@@ -21,7 +21,7 @@ app_desc = (
 
 origins = os.getenv("CORS_ORIGINS", "*").split(" ")  # provide all the allowed origins as space separated
 app = FastAPI(
-    title=f"Foresight App: {INSTANCE_NAME}",
+    title=app_title,
     version=f"{BUILD_NUMBER}",
     description=app_desc,
     swagger_ui_parameters={

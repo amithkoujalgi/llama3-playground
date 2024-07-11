@@ -10,6 +10,29 @@ A fully-contained environment to finetune Llama 3 model with custom dataset and 
 > Note: This is tested only on NVIDIA RTX 2080 and NVIDIA Tesla T4 GPUs so far. It hasn't been tested with the other GPU
 > classes or on CPUs.
 
+
+Run this command on your host machine to check which Nvidia GPU you've installed.
+
+```shell
+nvidia-smi
+```
+
+That should display your GPU info.
+
+```shell
++---------------------------------------------------------------------------------------+
+| NVIDIA-SMI 535.171.04             Driver Version: 535.171.04   CUDA Version: 12.2     |
+|-----------------------------------------+----------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |         Memory-Usage | GPU-Util  Compute M. |
+|                                         |                      |               MIG M. |
+|=========================================+======================+======================|
+|   0  NVIDIA GeForce RTX 2080        Off | 00000000:01:00.0  On |                  N/A |
+| 22%   38C    P8              17W / 215W |    197MiB /  8192MiB |      0%      Default |
+|                                         |                      |                  N/A |
++-----------------------------------------+----------------------+----------------------+
+```
+
 ### Setup
 
 ```shell
@@ -34,6 +57,8 @@ This starts the Docker container with the following services.
 | JupyterLab Server | http://localhost:8888/lab  | Access JupyterLab interface for browsing the container and updating/experimenting with the code |   |
 
 ### Additional setup instructions
+
+This would be needed if you do not have NVIDIA Container Toolkit installed on your host machine.
 
 #### Install NVIDIA Container Toolkit if you're running a Ubuntu host
 

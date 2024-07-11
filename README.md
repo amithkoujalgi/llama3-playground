@@ -74,6 +74,7 @@ This starts the Docker container with the following services.
 > simultaneously, we would encounter out-of-memory (OOM) issues.
 > To handle that, the system has been designed to run only one process at any given point in time. (i.e., Only one
 > instance of OCR or training or inference can be run at a time)
+>
 > Please feel free to update the code according to your needs.
 
 ### Additional setup instructions

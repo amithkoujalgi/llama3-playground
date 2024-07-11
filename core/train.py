@@ -112,11 +112,14 @@ def run_training(dataset_dir: str, target_model_name: str):
     trainer_stats = trainer.train()
 
     # Local saving of LoRA adapters only!
-    model.save_pretrained(target_model_name)
-    tokenizer.save_pretrained(target_model_name)
+    # model.save_pretrained(target_model_name)
+    # tokenizer.save_pretrained(target_model_name)
 
-    # Local saving of full model!
-    # model.save_pretrained_merged(f'{target_model_name}-merged', tokenizer, save_method="merged_16bit", )
+    # Local saving of full model - in float16!
+    model.save_pretrained_merged(target_model_name, tokenizer, save_method="merged_16bit", )
+
+    # Local saving of full model - in int4!
+    # model.save_pretrained_merged(target_model_name, tokenizer, save_method="merged_4bit", )
 
     print(f"Fine-tuning completed. Saved new model at: {target_model_name}")
 

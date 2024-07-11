@@ -54,7 +54,7 @@ def _run_inference_process_and_collect_result(run_id: str, model_name: str, cont
         '-d', context_data_file,
         '-q', question_text,
         '-p', prompt_text,
-        '-t', max_new_tokens
+        '-t', str(max_new_tokens)
     ]
     out = ""
     err = ""

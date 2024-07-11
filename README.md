@@ -1,6 +1,7 @@
 # Llama 3 Playground
 
-A fully-contained environment to finetune Llama 3 model with custom dataset and run inference on the finetuned models
+A fully-contained, ready-to-run environment to finetune Llama 3 model with custom dataset and run inference on the
+fine-tuned models
 
 ### Requirements
 
@@ -32,6 +33,18 @@ That should display your GPU info.
 |                                         |                      |                  N/A |
 +-----------------------------------------+----------------------+----------------------+
 ```
+
+### What does the setup/image contain?
+
+- Python 3.10
+- JupyterLab
+- Huggingface CLI
+- [EasyOCR](https://github.com/JaidedAI/EasyOCR) (with
+  the [English detection model](https://www.jaided.ai/easyocr/modelhub/) pre-downloaded). This is for running
+  character recognition on PDF/image files.
+- [Llama3 model](https://huggingface.co/unsloth/llama-3-8b-Instruct-bnb-4bit) pre-downloaded
+- [Scripts](https://github.com/amithkoujalgi/llama3-playground/tree/main/core) to run OCR, training and inference.
+- Sample dataset to finetune the model with
 
 ### Setup
 

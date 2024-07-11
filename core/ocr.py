@@ -258,10 +258,12 @@ def pdf_to_text(pdf_path: str, runs_dir: str):
             "page": i,
             "ocr-data": page_txt
         })
+    print(f'OCR for {len(images)} pages done.')
     pages_ocr_data_file = os.path.join(runs_dir, f'ocr-result.json')
     ocr_json_data = json.dumps(pages_data, default=str, indent=4)
     with open(pages_ocr_data_file, 'w') as f:
         f.write(ocr_json_data)
+    print(f'Wrote OCR JSON result to: {pages_ocr_data_file}')
     pages_text = ''
     for page_data in pages_data:
         page_num = page_data['page']
@@ -275,42 +277,50 @@ def pdf_to_text(pdf_path: str, runs_dir: str):
     pages_text_data_file = os.path.join(runs_dir, 'text-result.txt')
     with open(pages_text_data_file, 'w') as f:
         f.write(pages_text)
+    print(f'Wrote OCR text result to: {pages_text_data_file}')
     return pages_text, pages_text_data_file, ocr_json_data, pages_ocr_data_file
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='PDF OCR.')
-    parser.add_argument('run_id', type=str,
-                        help='Path to the out directory')
-    parser.add_argument('pdfFile', type=str,
-                        help='Path to the source PDF file')
-    args = parser.parse_args()
+def print_cli_args(cli_args: argparse.Namespace):
+    print("Using the following config:")
+    t = PrettyTable(['Config Key', 'Specified Value'])
+    t.align["Config Key"] = "r"
+    t.align["Specified Value"] = "l"
+    for k, v in cli_args.__dict__.items():
+        t.add_row([k, v])
+    print(t)
 
-    if len(sys.argv) != len(vars(args)) + 1:
-        print("Invalid arguments!")
-        print("Arguments needed: run_id, pdfFile")
-        print("Example:")
-        print(
-            f'python3 {os.path.basename(__file__)} "123" "/tmp/input.pdf"')
-        exit(1)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='A utility to run OCR and extract text from a PDF file.')
+    parser.add_argument(
+        '-r',
+        '--run-id',
+        type=str,
+        dest='run_id',
+        help='A run ID (string) to create a folder with the OCR run data. Example: "123"',
+        required=True
+    )
+    parser.add_argument(
+        '-f',
+        '--pdf-path',
+        type=str,
+        dest='pdf_file_path',
+        help='Path to the source PDF file. Example: "/tmp/input.pdf"',
+        required=True
+    )
+    args: argparse.Namespace = parser.parse_args()
+    print_cli_args(cli_args=args)
 
     run_id = args.run_id
-    outDir = f'{Config.ocr_runs_dir}/{run_id}'
+    pdfFile = args.pdf_file_path
 
+    outDir = f'{Config.ocr_runs_dir}/{run_id}'
     if not os.path.isdir(outDir):
         print(f"Creating out directory: {outDir}")
         os.makedirs(outDir)
 
-    pdfFile = args.pdfFile
     shutil.copyfile(pdfFile, f'{outDir}/{os.path.basename(pdfFile)}')
-
-    print("Using the following config:")
-    t = PrettyTable(['Config', 'Value'])
-    t.align["Config"] = "r"
-    t.align["Value"] = "l"
-    t.add_row(['run_id', run_id])
-    t.add_row(['pdfFile', pdfFile])
-    print(t)
 
     fillpdfs.flatten_pdf(pdfFile, pdfFile, as_images=False)
 

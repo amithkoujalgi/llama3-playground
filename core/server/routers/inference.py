@@ -23,23 +23,34 @@ class InferenceWithFileContextParams(BaseModel):
     model_name: str = pydantic.Field(default=None, description="Name of the model")
     context_data_file: str = pydantic.Field(default=None, description="Path to context data file")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
+    prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
 
 
 class InferenceWithOCRRunIDParams(BaseModel):
     model_name: str = pydantic.Field(default=None, description="Name of the model")
     ocr_run_id: str = pydantic.Field(default=None, description="Run ID of an OCR run")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
+    prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
 
 
 class InferenceWithTextContextParams(BaseModel):
     model_name: str = pydantic.Field(default=None, description="Name of the model")
     context_data: str = pydantic.Field(default=None, description="Context data string")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
+    prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
 
 
 def _run_inference_process_and_collect_result(run_id: str, model_name: str, context_data_file: str,
-                                              question_text: str) -> JSONResponse:
-    cmd_arr = ['python', '/app/core/infer.py', run_id, model_name, context_data_file, question_text]
+                                              question_text: str, prompt_text: str) -> JSONResponse:
+    inference_dir = f'{Config.inferences_dir}/{run_id}'
+    cmd_arr = [
+        'python', '/app/core/infer.py',
+        '-r', run_id,
+        '-m', model_name,
+        '-d', context_data_file,
+        '-q', question_text,
+        '-p', prompt_text
+    ]
     out = ""
     err = ""
     p = subprocess.Popen(cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -50,8 +61,14 @@ def _run_inference_process_and_collect_result(run_id: str, model_name: str, cont
     p.wait()
     return_code = p.returncode
 
+    with open(f"{inference_dir}/process-out.log", 'w') as lf:
+        lf.write(out)
+        lf.write('\n\n')
+        lf.write(err)
+        lf.write('\n\n')
+        lf.write(f'Exit code: {return_code}')
+
     if return_code == 0:
-        inference_dir = f'{Config.inferences_dir}/{run_id}'
         status_file = os.path.join(inference_dir, 'RUN-STATUS')
         if os.path.exists(status_file):
             with open(status_file, 'r') as f:
@@ -95,7 +112,8 @@ async def run_inference_sync_ctx_file(inference_params: InferenceWithFileContext
         run_id=inference_run_id,
         model_name=inference_params.model_name,
         context_data_file=inference_params.context_data_file,
-        question_text=inference_params.question_text
+        question_text=inference_params.question_text,
+        prompt_text=inference_params.prompt_text
     )
 
 
@@ -114,7 +132,8 @@ async def run_inference_sync_ctx_text(inference_params: InferenceWithTextContext
         run_id=inference_run_id,
         model_name=inference_params.model_name,
         context_data_file=ctx_data_file,
-        question_text=inference_params.question_text
+        question_text=inference_params.question_text,
+        prompt_text=inference_params.prompt_text
     )
 
 
@@ -136,7 +155,8 @@ async def run_inference_sync_ocr_run_file(inference_params: InferenceWithOCRRunI
                     run_id=inference_run_id,
                     model_name=inference_params.model_name,
                     context_data_file=text_result_file,
-                    question_text=inference_params.question_text
+                    question_text=inference_params.question_text,
+                    prompt_text=inference_params.prompt_text
                 )
             else:
                 return ResponseHandler.error(
@@ -162,7 +182,8 @@ async def run_inference_async(inference_params: InferenceWithFileContextParams):
     #     run_id=inference_run_id,
     #     model_name=inference_params.model_name,
     #     context_data_file=ctx_data_file,
-    #     question_text=inference_params.question_text
+    #     question_text=inference_params.question_text,
+    #         prompt_text=inference_params.prompt_text
     # )
 
     return ResponseHandler.success(

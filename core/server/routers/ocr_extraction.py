@@ -18,7 +18,13 @@ router = APIRouter()
 
 
 def _run_ocr_process_and_collect_result(run_id: str, pdf_file: str) -> JSONResponse:
-    cmd_arr = ['python', '/app/core/ocr.py', run_id, pdf_file]
+    ocr_run_dir = f'{Config.ocr_runs_dir}/{run_id}'
+
+    cmd_arr = [
+        'python', '/app/core/ocr.py',
+        '-r', run_id,
+        '-f', pdf_file
+    ]
     out = ""
     err = ""
     p = subprocess.Popen(cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -29,8 +35,14 @@ def _run_ocr_process_and_collect_result(run_id: str, pdf_file: str) -> JSONRespo
     p.wait()
     return_code = p.returncode
 
+    with open(f"{ocr_run_dir}/process-out.log", 'w') as lf:
+        lf.write(out)
+        lf.write('\n\n')
+        lf.write(err)
+        lf.write('\n\n')
+        lf.write(f'Exit code: {return_code}')
+
     if return_code == 0:
-        ocr_run_dir = f'{Config.ocr_runs_dir}/{run_id}'
         status_file = os.path.join(ocr_run_dir, 'RUN-STATUS')
         if os.path.exists(status_file):
             with open(status_file, 'r') as f:

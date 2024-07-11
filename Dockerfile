@@ -27,8 +27,10 @@ COPY ./supervisord.conf /supervisord.conf
 
 RUN apt-get update && apt-get install -y jq curl wget && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /app/easyocr-models &&  \
-    cd /app/easyocr-models &&  \
+ENV EASY_OCR_MODELS_DIR "/app/easyocr-models"
+
+RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
+    cd $EASY_OCR_MODELS_DIR &&  \
     wget -O craft_mlt_25k.zip https://github.com/JaidedAI/EasyOCR/releases/download/pre-v1.1.6/craft_mlt_25k.zip &&  \
     unzip craft_mlt_25k.zip &&  \
     rm craft_mlt_25k.zip &&  \

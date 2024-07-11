@@ -13,7 +13,7 @@ A fully-contained environment to finetune Llama 3 model with custom dataset and 
 ### Setup
 
 ```shell
-git checkout https://github.com/amithkoujalgi/llama3-playground.git
+git clone https://github.com/amithkoujalgi/llama3-playground.git
 cd llama3-playground
 
 bash build.sh
@@ -35,7 +35,7 @@ This starts the Docker container with the following services.
 
 ### Additional setup instructions
 
-#### Install NVIDIA Container Toolkit on Ubuntu
+#### Install NVIDIA Container Toolkit if you're running a Ubuntu host
 
 ```shell
 # Configure the production repository

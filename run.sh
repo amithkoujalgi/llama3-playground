@@ -12,7 +12,6 @@ docker run \
   -v ~/llama3-playground-data:/app/data \
   llama3-playground:0.1
 
-
 #docker run \
 #  --gpus=all \
 #  -it \

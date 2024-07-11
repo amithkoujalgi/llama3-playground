@@ -1,8 +1,14 @@
-# llama3-playground
-A fully-contained environment to finetune Llama3 model with custom dataset and run inference on the finetuned models
+# Llama 3 Playground
+
+A fully-contained environment to finetune Llama 3 model with custom dataset and run inference on the finetuned models
 
 
-Install NVIDIA Container Toolkit
+> Note: This is tested only on NVIDIA RTX 2080 and NVIDIA Tesla T4 GPUs so far. It hasn't been tested with the other GPU
+> classes or on CPUs.
+
+### Install NVIDIA Container Toolkit
+
+#### On Ubuntu
 
 ```shell
 # Configure the production repository
@@ -21,5 +27,30 @@ sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 ```
 
+#### For other environments, please refer to [this](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+## APIs
+
+### OCR
+
+#### Get status of OCR process. Returns `true` if any OCR process is running, `false` otherwise.
+
+```shell
+curl -X 'GET' \
+  'http://localhost:8883/api/ocr/status' \
+  -H 'accept: application/json'
+```
+
+#### Run OCR on PDF file by uploading the file
+
+```shell
+curl -X 'POST' \
+  'http://localhost:8883/api/ocr/sync/pdf' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: multipart/form-data' \
+  -F 'file=@your_file.pdf;type=application/pdf'
+```
+
 References:
+
 - https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html

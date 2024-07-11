@@ -4,6 +4,7 @@
 import argparse
 import json
 import os
+import sys
 import time
 import traceback
 
@@ -130,6 +131,13 @@ if __name__ == '__main__':
     target_model_name = f'{Config.fine_tuned_model_name_prefix}-{int(time_now)}'
     target_model_dir = f'{Config.models_dir}/{target_model_name}'
     dataset_dir = Config.training_dataset_dir_path
+
+    if not os.path.isdir(dataset_dir):
+        os.makedirs(dataset_dir)
+
+    if len(os.listdir(dataset_dir)) == 0:
+        print(f"Training dataset directory '{dataset_dir}' is empty. Please add some data here before proceeding.")
+        sys.exit(1)
 
     if not os.path.isdir(trainer_run_dir):
         print(f"Creating trainer run directory: {trainer_run_dir}")

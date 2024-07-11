@@ -50,11 +50,18 @@ bash run.sh
 
 This starts the Docker container with the following services.
 
-| Service           | Host                       | Description                                                                                     |   |
-|-------------------|----------------------------|-------------------------------------------------------------------------------------------------|---|
-| Supervisor        | http://localhost:8884      | For running training on custom dataset and viewing logs of trainer process                      |   |
-| FastAPI Server    | http://localhost:8883/docs | For accessing APIs of the model server                                                          |   |
-| JupyterLab Server | http://localhost:8888/lab  | Access JupyterLab interface for browsing the container and updating/experimenting with the code |   |
+| Service           | Externally accessible endpoint | Internal Port | Description                                                                                     |
+|-------------------|--------------------------------|---------------|-------------------------------------------------------------------------------------------------|
+| Supervisor        | http://localhost:8884          | 9001          | For running training on custom dataset and viewing logs of trainer process                      |
+| FastAPI Server    | http://localhost:8883/docs     | 8070          | For accessing APIs of the model server                                                          |
+| JupyterLab Server | http://localhost:8888/lab      | 8888          | Access JupyterLab interface for browsing the container and updating/experimenting with the code |
+
+> **Note**:
+> All the processes (OCR, training and inference) use GPU and if more than one process of any type would be run
+> simultaneously, we would encounter out-of-memory (OOM) issues.
+> To handle that, the system has been designed to run only one process at any given point in time. (i.e., Only one
+> instance of OCR or training or inference can be run at a time)
+> Please feel free to update the code according to your needs.
 
 ### Additional setup instructions
 

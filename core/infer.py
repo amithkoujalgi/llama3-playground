@@ -18,7 +18,7 @@ from config import Config
 
 
 def run_inference(model_path: str, question_text: str, prompt_text: str, ctx_file: str, resp_file: str,
-                  prompt_text_file: str):
+                  prompt_text_file: str, max_new_tokens: int = 128):
     max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
@@ -31,7 +31,11 @@ def run_inference(model_path: str, question_text: str, prompt_text: str, ctx_fil
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
-    prompt = """Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
+    prompt = """
+    You are a helpful assistant.
+    [PROMPT_PLACEHOLDER]
+    
+    Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
 
     ### Context:
     {}
@@ -43,7 +47,7 @@ def run_inference(model_path: str, question_text: str, prompt_text: str, ctx_fil
     {}"""
 
     if prompt_text is not None and type(prompt_text) == str:
-        prompt = prompt + "\n\n" + prompt_text
+        prompt = prompt.replace('[PROMPT_PLACEHOLDER]', prompt_text)
 
     with open(prompt_text_file, 'w') as f:
         f.write(prompt)
@@ -67,7 +71,7 @@ def run_inference(model_path: str, question_text: str, prompt_text: str, ctx_fil
     # outputs = model.generate(**inputs, streamer=text_streamer, max_new_tokens=128, use_cache=True)
     # response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
 
-    outputs = model.generate(**inputs, max_new_tokens=128, use_cache=True)
+    outputs = model.generate(**inputs, max_new_tokens=max_new_tokens, use_cache=True)
     response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
     response = response.strip()
     print(response)
@@ -107,6 +111,15 @@ if __name__ == '__main__':
         required=False,
         default=""
     )
+    parser.add_argument(
+        '-t',
+        '--max-new-tokens',
+        type=int,
+        dest='max_new_tokens',
+        help='Maximum number of new tokens to generate. Example: 1024. Default is 128.',
+        required=False,
+        default=128
+    )
     required_args = parser.add_argument_group('required arguments')
     required_args.add_argument(
         '-m',
@@ -141,6 +154,7 @@ if __name__ == '__main__':
     contextDataFile = args.context_data_file_path
     questionText = args.question_text
     prompt_text = args.prompt_text
+    max_new_tokens = args.max_new_tokens
 
     inference_dir = f'{Config.inferences_dir}/{runId}'
     os.makedirs(inference_dir, exist_ok=True)
@@ -160,7 +174,8 @@ if __name__ == '__main__':
 
     try:
         run_inference(model_path=model_path, question_text=questionText, prompt_text=prompt_text,
-                      ctx_file=contextDataFile, resp_file=resp_file, prompt_text_file=prompt_text_file)
+                      ctx_file=contextDataFile, resp_file=resp_file, prompt_text_file=prompt_text_file,
+                      max_new_tokens=max_new_tokens)
 
         with open(os.path.join(inference_dir, 'RUN-STATUS'), 'w') as f:
             f.write("success")

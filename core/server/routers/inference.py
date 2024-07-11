@@ -24,6 +24,7 @@ class InferenceWithFileContextParams(BaseModel):
     context_data_file: str = pydantic.Field(default=None, description="Path to context data file")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
+    max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
 
 
 class InferenceWithOCRRunIDParams(BaseModel):
@@ -31,6 +32,7 @@ class InferenceWithOCRRunIDParams(BaseModel):
     ocr_run_id: str = pydantic.Field(default=None, description="Run ID of an OCR run")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
+    max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
 
 
 class InferenceWithTextContextParams(BaseModel):
@@ -38,10 +40,12 @@ class InferenceWithTextContextParams(BaseModel):
     context_data: str = pydantic.Field(default=None, description="Context data string")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
+    max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
 
 
 def _run_inference_process_and_collect_result(run_id: str, model_name: str, context_data_file: str,
-                                              question_text: str, prompt_text: str) -> JSONResponse:
+                                              question_text: str, prompt_text: str,
+                                              max_new_tokens: int) -> JSONResponse:
     inference_dir = f'{Config.inferences_dir}/{run_id}'
     cmd_arr = [
         'python', '/app/core/infer.py',
@@ -49,7 +53,8 @@ def _run_inference_process_and_collect_result(run_id: str, model_name: str, cont
         '-m', model_name,
         '-d', context_data_file,
         '-q', question_text,
-        '-p', prompt_text
+        '-p', prompt_text,
+        '-t', max_new_tokens
     ]
     out = ""
     err = ""
@@ -113,7 +118,8 @@ async def run_inference_sync_ctx_file(inference_params: InferenceWithFileContext
         model_name=inference_params.model_name,
         context_data_file=inference_params.context_data_file,
         question_text=inference_params.question_text,
-        prompt_text=inference_params.prompt_text
+        prompt_text=inference_params.prompt_text,
+        max_new_tokens=inference_params.max_new_tokens
     )
 
 
@@ -133,7 +139,8 @@ async def run_inference_sync_ctx_text(inference_params: InferenceWithTextContext
         model_name=inference_params.model_name,
         context_data_file=ctx_data_file,
         question_text=inference_params.question_text,
-        prompt_text=inference_params.prompt_text
+        prompt_text=inference_params.prompt_text,
+        max_new_tokens=inference_params.max_new_tokens
     )
 
 
@@ -156,7 +163,8 @@ async def run_inference_sync_ocr_run_file(inference_params: InferenceWithOCRRunI
                     model_name=inference_params.model_name,
                     context_data_file=text_result_file,
                     question_text=inference_params.question_text,
-                    prompt_text=inference_params.prompt_text
+                    prompt_text=inference_params.prompt_text,
+                    max_new_tokens=inference_params.max_new_tokens
                 )
             else:
                 return ResponseHandler.error(
@@ -183,7 +191,8 @@ async def run_inference_async(inference_params: InferenceWithFileContextParams):
     #     model_name=inference_params.model_name,
     #     context_data_file=ctx_data_file,
     #     question_text=inference_params.question_text,
-    #         prompt_text=inference_params.prompt_text
+    #         prompt_text=inference_params.prompt_text,
+    #         max_new_tokens=inference_params.max_new_tokens
     # )
 
     return ResponseHandler.success(

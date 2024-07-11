@@ -2447,17 +2447,17 @@ Adopting Employer's Tax Year End (specify month and day)
 
 Type of Business (select one):
 
-Sole Proprietorship
+[No] Sole Proprietorship
 
-Partnership
+[No] Partnership
 
-Corporation
+[Yes] C Corporation
 
-S Corporation
+[No] S Corporation
 
-LLC
+[No] LLC
 
-Other (specify a legal entity recognized under federal income tax laws):
+[No] Other (specify a legal entity recognized under federal income tax laws):
 
 Ask Plan Individual 401klPlan
 
@@ -2553,7 +2553,7 @@ day =
 
 (e.g ,
 
-Co.,`",,
+Co.,`",What is the business type?,C Corporation
 "625]1
 
 [esrrles

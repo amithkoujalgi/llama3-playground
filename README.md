@@ -75,7 +75,7 @@ This starts the Docker container with the following services.
 > To handle that, the system has been designed to run only one process at any given point in time. (i.e., Only one
 > instance of OCR or training or inference can be run at a time)
 >
-> Please feel free to update the code according to your needs.
+> Feel free to update the code according to your needs.
 
 ### Additional setup instructions
 
@@ -100,7 +100,7 @@ sudo apt-get update
 sudo apt-get install -y nvidia-container-toolkit
 ```
 
-For other environments, please refer
+For other environments, refer
 to [this](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
 
 ## APIs

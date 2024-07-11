@@ -11,6 +11,7 @@ class Config:
     base_model = get_config()['base_model']
     training_dataset_dir_path = get_config()['training_dataset_dir_path']
     checkpoints_dir = get_config()['checkpoints_dir']
+    easyocr_models_dir = get_config()['easyocr_models_dir']
     models_dir = get_config()['models_dir']
     trainer_runs_dir = get_config()['trainer_runs_dir']
     ocr_runs_dir = get_config()['ocr_runs_dir']

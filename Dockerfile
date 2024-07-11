@@ -23,8 +23,19 @@ RUN mkdir -p /app/data/
 COPY ./config.json /app/config.json
 COPY ./core /app/core
 COPY ./training-dataset /app/data/training-dataset
-
 COPY ./supervisord.conf /supervisord.conf
+
+RUN apt-get update && apt-get install -y jq curl wget && rm -rf /var/lib/apt/lists/*
+
+# Download EasyOCR models
+RUN mkdir -p /app/data/easyocr-models && \
+    cd /app/data/easyocr-models &&  \
+    wget https://github.com/JaidedAI/EasyOCR/releases/download/pre-v1.1.6/craft_mlt_25k.zip && \
+    unzip craft_mlt_25k.zip && \
+    rm craft_mlt_25k.zip && \
+    wget https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip && \
+    unzip english_g2.zip && \
+    rm english_g2.zip
 
 RUN echo '#!/bin/bash' >> /start-services.sh
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh

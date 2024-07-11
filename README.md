@@ -104,14 +104,6 @@ curl --silent -X 'POST' \
 
 ### OCR
 
-#### Get status of OCR process. Returns `true` if any OCR process is running, `false` otherwise.
-
-```shell
-curl -X 'GET' \
-  'http://localhost:8883/api/ocr/status' \
-  -H 'accept: application/json'
-```
-
 #### Run OCR on PDF file by uploading the file
 
 ```shell
@@ -120,6 +112,14 @@ curl -X 'POST' \
   -H 'accept: application/json' \
   -H 'Content-Type: multipart/form-data' \
   -F 'file=@your_file.pdf;type=application/pdf'
+```
+
+#### Get status of OCR process. Returns `true` if any OCR process is running, `false` otherwise.
+
+```shell
+curl -X 'GET' \
+  'http://localhost:8883/api/ocr/status' \
+  -H 'accept: application/json'
 ```
 
 References:

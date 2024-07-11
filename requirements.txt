@@ -19,3 +19,9 @@ gunicorn
 fastapi
 fastapi_pagination
 python-multipart
+
+
+
+langchain_community==0.2.7
+sentence_transformers==3.0.1
+chromadb==0.5.4

@@ -72,7 +72,8 @@ curl --silent -X 'POST' \
   "model_name": "llama-3-8b-instruct-custom-1720690384",
   "context_data": "You are a magician who goes by the name Magica",
   "question_text": "Who are you?",
-  "prompt_text": "Respond in a musical and Shakespearean tone"
+  "prompt_text": "Respond in a musical and Shakespearean tone",
+  "max_new_tokens": 50
 }' | jq -r ".data.response"
 ```
 

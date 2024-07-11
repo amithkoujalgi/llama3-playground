@@ -220,7 +220,7 @@ def run_ocr(image_file: str):
         }
 
     _data = []
-    reader = easyocr.Reader(['en'], model_storage_directory=Config.easyocr_models_dir, download_enabled=False)
+    reader = easyocr.Reader(['en'], model_storage_directory='/app/easyocr-models', download_enabled=False)
     result = reader.readtext(image_file)
     for item in result:
         coordinates, text, score = item

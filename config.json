@@ -3,7 +3,6 @@
   "fine_tuned_model_name_prefix": "llama-3-8b-instruct-custom",
   "training_dataset_dir_path": "/app/data/training-dataset",
   "checkpoints_dir": "/app/data/model-checkpoints",
-  "easyocr_models_dir": "/app/data/easyocr-models",
   "models_dir": "/app/data/trained-models",
   "trainer_runs_dir": "/app/data/trainer-runs",
   "ocr_runs_dir": "/app/data/ocr-runs",

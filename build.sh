@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build -t llama3-finetuning:0.1 .
+docker build -t llama3-playground:0.1 .

@@ -10,7 +10,7 @@ docker run \
   -p 8887:8887 \
   -p 8888:8888 \
   ~/llama3-playground-data:/app/data \
-  llama3-finetuning:0.1
+  llama3-playground:0.1
 
 
 #docker run \
@@ -22,4 +22,4 @@ docker run \
 #  -p 8886:8886 \
 #  -p 8887:8887 \
 #  -p 8888:8888 \
-#  llama3-finetuning:0.1
+#  llama3-playground:0.1

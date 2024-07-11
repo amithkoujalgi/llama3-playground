@@ -28,7 +28,7 @@ COPY ./supervisord.conf /supervisord.conf
 RUN apt-get update && apt-get install -y jq curl wget && rm -rf /var/lib/apt/lists/*
 
 RUN echo '#!/bin/bash' >> /start-services.sh
-RUN echo 'mkdir -p /app/data/easyocr-models && cd /app/data/easyocr-models && wget -nc https://github.com/JaidedAI/EasyOCR/releases/download/pre-v1.1.6/craft_mlt_25k.zip && unzip craft_mlt_25k.zip && rm craft_mlt_25k.zip && wget -nc https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip && unzip english_g2.zip && rm english_g2.zip' >> /start-services.sh
+RUN echo 'mkdir -p /app/data/easyocr-models && cd /app/data/easyocr-models && wget -O https://github.com/JaidedAI/EasyOCR/releases/download/pre-v1.1.6/craft_mlt_25k.zip && unzip craft_mlt_25k.zip && rm craft_mlt_25k.zip && wget -O https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip && unzip english_g2.zip && rm english_g2.zip' >> /start-services.sh
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh
 RUN echo 'cd /app/core && nohup gunicorn server.app:app --keep-alive 3600 --timeout 3600 --graceful-timeout 300 --threads 10 --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8070 > /app/logs/app-server.log 2>&1 &' >> /start-services.sh
 RUN echo 'cd /app' >> /start-services.sh

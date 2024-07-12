@@ -24,4 +24,5 @@ python-multipart
 
 langchain_community==0.2.7
 sentence_transformers==3.0.1
-chromadb==0.5.4
+pysqlite3-binary==0.5.3
+chromadb==0.5.3

@@ -58,13 +58,13 @@ def run_training(dataset_dir: str, target_model_name: str):
     )
 
     prompt = """Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
-    
+
     ### Context:
     {}
-    
+
     ### Question:
     {}
-    
+
     ### Response:
     {}"""
 
@@ -91,10 +91,10 @@ def run_training(dataset_dir: str, target_model_name: str):
         train_dataset=dataset,
         dataset_text_field="text",
         max_seq_length=max_seq_length,
-        dataset_num_proc=2,
+        dataset_num_proc=1,
         packing=False,  # Can make training 5x faster for short sequences.
         args=TrainingArguments(
-            per_device_train_batch_size=2,
+            per_device_train_batch_size=1,
             gradient_accumulation_steps=4,
             warmup_steps=5,
             max_steps=60,
@@ -113,8 +113,10 @@ def run_training(dataset_dir: str, target_model_name: str):
     trainer_stats = trainer.train()
 
     # Local saving of LoRA adapters only!
-    # model.save_pretrained(target_model_name)
-    # tokenizer.save_pretrained(target_model_name)
+    target_model_name_lora_adapters = f'{target_model_name}-lora-adapters'
+    model.save_pretrained(target_model_name_lora_adapters)
+    tokenizer.save_pretrained(target_model_name_lora_adapters)
+    print(f"Saved LoRA adapters at: {target_model_name_lora_adapters}")
 
     # Local saving of full model - in float16!
     model.save_pretrained_merged(target_model_name, tokenizer, save_method="merged_16bit", )

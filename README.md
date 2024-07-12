@@ -79,6 +79,19 @@ This starts the Docker container with the following services.
 
 ### Running commands from Jupyter
 
+Train model:
+
+```shell
+cd /app/core
+
+python train.py
+```
+
+This produces models under `/app/data/trained-models/`. The trainer script produces 2 models:
+
+- a model that has just the LoRA adapters and is suffixed with `lora-adapters`.
+- a full model that has just the LoRA adapters merged with the base model.
+
 Run OCR:
 
 ```shell
@@ -90,14 +103,6 @@ python ocr.py \
 ```
 
 For understanding what the options mean, go to JupyterLab and execute `python ocr.py -h`
-
-Train model:
-
-```shell
-cd /app/core
-
-python train.py
-```
 
 Inference with RAG:
 

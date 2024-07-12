@@ -5,6 +5,8 @@ import os
 import shutil
 import sys
 import traceback
+import uuid
+
 from config import Config
 
 import cv2
@@ -299,9 +301,11 @@ if __name__ == '__main__':
         type=str,
         dest='run_id',
         help='A run ID (string) to create a folder with the OCR run data. Example: "123"',
-        required=True
+        required=False,
+        default=str(uuid.uuid4())
     )
-    parser.add_argument(
+    required_args = parser.add_argument_group('required arguments')
+    required_args.add_argument(
         '-f',
         '--pdf-path',
         type=str,

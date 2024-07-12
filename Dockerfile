@@ -2,7 +2,7 @@ FROM python:3.10.14-slim-bullseye
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git build-essential zip procps libgl1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git build-essential zip procps libgl1 jq curl wget && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
 
@@ -24,8 +24,6 @@ COPY ./config.json /app/config.json
 COPY ./core /app/core
 COPY ./training-dataset /app/data/training-dataset
 COPY ./supervisord.conf /supervisord.conf
-
-RUN apt-get update && apt-get install -y jq curl wget && rm -rf /var/lib/apt/lists/*
 
 ENV EASY_OCR_MODELS_DIR "/easyocr-models"
 

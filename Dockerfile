@@ -27,7 +27,7 @@ COPY ./supervisord.conf /supervisord.conf
 
 RUN apt-get update && apt-get install -y jq curl wget && rm -rf /var/lib/apt/lists/*
 
-ENV EASY_OCR_MODELS_DIR "/app/easyocr-models"
+ENV EASY_OCR_MODELS_DIR "/easyocr-models"
 
 RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
     cd $EASY_OCR_MODELS_DIR &&  \

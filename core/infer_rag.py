@@ -172,17 +172,6 @@ def run_inference(model_path: str, embed_model_path: str, question_text: str, pr
     ### Response:
     {}"""
 
-    # prompt = """You are a smart and logical assistant. Use the given context and extract the required fields from it and provide the result in a json format. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. If you cannot answer the question from the given documents, please state that you do not have an answer.
-
-    # Context:
-    # {}
-
-    # Question: 
-    # {}
-
-    # Response:
-    # {}"""
-
     if prompt_text is not None and type(prompt_text) == str:
         prompt = prompt.replace('[PROMPT_PLACEHOLDER]', prompt_text)
 

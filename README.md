@@ -77,6 +77,45 @@ This starts the Docker container with the following services.
 >
 > Feel free to update the code according to your needs.
 
+### Running commands from Jupyter
+
+Run OCR:
+
+```shell
+cd /app/core
+
+python ocr.py \
+  -r 123 \
+  -f "/app/sample.pdf"
+```
+
+For understanding what the options mean, go to JupyterLab and execute `python ocr.py -h`
+
+Train model:
+
+```shell
+cd /app/core
+
+python train.py
+```
+
+Inference with RAG:
+
+```shell
+cd /app/core
+
+python infer_rag.py \
+  -m "llama-3-8b-instruct-custom-1720802202" \
+  -d "/app/data/ocr-runs/123/text-result.txt" \
+  -q "What is the employer name, address, telephone, TIN, tax year end, type of business, plan name, Plan Sequence Number, Trust ID, Account number, is it a new plan or existing plan as true or false, are elective deferrals and roth deferrals allowed as true or false, are loans permitted as true or false, are life insurance investments permitted and what is the ligibility Service Requirement selected?" \
+  -r 1234 \
+  -t 256 \
+  -e "Alibaba-NLP/gte-base-en-v1.5" \
+  -p "There are checkboxes in the text that denote the value as selected if the text is [Yes], and unselected if the text is [No]. The checkbox option's value can either be before the selected value or after. Keep this in context while responding and be very careful and precise in picking these values. Always respond as JSON. Keep the responses precise and concise."
+```
+
+For understanding what the options mean, go to JupyterLab and execute `python infer_rag.py -h`
+
 ### Additional setup instructions
 
 This would be needed if you do not have NVIDIA Container Toolkit installed on your host machine.

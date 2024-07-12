@@ -3,35 +3,28 @@
 # !pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
 import os
 import sys
-import uuid
 
+# noinspection PyUnresolvedReferences
 import pysqlite3
 
 sys.modules["sqlite3"] = sys.modules.pop("pysqlite3")
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 os.environ['WANDB_MODE'] = 'disabled'
 
+import uuid
+import re
+import shutil
 import argparse
-
-import sys
 import traceback
-
+from argparse import RawTextHelpFormatter
 from prettytable import PrettyTable
-
 from unsloth import FastLanguageModel
 from config import Config
-
-import os
-import shutil
-import re
-
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from sentence_transformers import SentenceTransformer
 from typing import List
-
-from argparse import RawTextHelpFormatter
 
 
 class MyEmbeddings:
@@ -136,15 +129,19 @@ class CreateChromaDB:
         db = Chroma(persist_directory=self.chroma_path, embedding_function=self.embedding_function)
         results = db.similarity_search_with_score(query_text, k=CreateChromaDB.TOP_K)
         context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-        # print(f"Retrieved relevant context chunks: \n{context_text}\n")
         return context_text
 
 
-def run_inference(model_path: str, embed_model_path: str, question_text: str, prompt_text: str, prompt_text_file: str,
+def run_inference(model_path: str,
+                  embed_model_path: str,
+                  question_text: str,
+                  prompt_text: str,
+                  prompt_text_file: str,
                   ctx_file: str,
                   resp_file: str,
                   rag_db_path: str,
-                  max_new_tokens: int, chunks_text_file: str):
+                  max_new_tokens: int,
+                  chunks_text_file: str):
     max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
@@ -230,8 +227,10 @@ def print_cli_args(cli_args: argparse.Namespace):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='A utility to infer from an LLM using a text file as context data.',
-                                     formatter_class=RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description='A utility to infer from an LLM using a text file as context data.',
+        formatter_class=RawTextHelpFormatter
+    )
     parser.add_argument(
         '-r',
         '--run-id',
@@ -264,9 +263,9 @@ if __name__ == '__main__':
         '--embedding-model',
         type=str,
         dest='embedding_model_name',
-        help='Embedding Model Name. Example: "Snowflake/snowflake-arctic-embed-l". Default is "Snowflake/snowflake-arctic-embed-l"',
+        help='Embedding Model Name. Example: "Alibaba-NLP/gte-base-en-v1.5", "Snowflake/snowflake-arctic-embed-l". Default is "Alibaba-NLP/gte-base-en-v1.5". Refer: https://huggingface.co/spaces/mteb/leaderboard',
         required=False,
-        default="Snowflake/snowflake-arctic-embed-l"
+        default="Alibaba-NLP/gte-base-en-v1.5"
     )
     required_args = parser.add_argument_group('required arguments')
     required_args.add_argument(

@@ -7,7 +7,7 @@ import shutil
 import traceback
 import uuid
 from argparse import RawTextHelpFormatter
-
+from utils import ModelManager
 from prettytable import PrettyTable
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
@@ -120,15 +120,26 @@ if __name__ == '__main__':
         required=False,
         default=128
     )
-    required_args = parser.add_argument_group('required arguments')
-    required_args.add_argument(
+    parser.add_argument(
         '-m',
         '--model-name',
         type=str,
         dest='model_name',
-        help=f'Name of the model to use for inference. Uses the models available at: "{Config.models_dir}". Example: "llama3-8b-custom-1720545601"',
-        required=True
+        help=f'Name of the model to use for inference. Uses the models available at: "{Config.models_dir}". If the argument is not specified, it will try to use the latest model available. Example: "llama3-8b-custom-1720545601"',
+        required=False,
+        default=None
     )
+    parser.add_argument(
+        '-l',
+        '--prefer-lora-adapter-model',
+        type=bool,
+        dest='prefer_lora_adapter_model',
+        help=f'Prefers using LoRA adapter model (if available) over full model.',
+        required=False,
+        default=False
+    )
+
+    required_args = parser.add_argument_group('required arguments')
     required_args.add_argument(
         '-d',
         '--data-file-path',
@@ -139,10 +150,10 @@ if __name__ == '__main__':
     )
     required_args.add_argument(
         '-q',
-        '--question-text',
+        '--question-file-path',
         type=str,
-        dest='question_text',
-        help='Question to be asked to the LLM. Example: "Who is Jashpal?"',
+        dest='question_file_path',
+        help='Path to the file that contains a auestion to be asked to the LLM. Example: "/app/question.txt"',
         required=True
     )
 
@@ -150,38 +161,60 @@ if __name__ == '__main__':
     print_cli_args(cli_args=args)
 
     runId = args.run_id
-    modelName = args.model_name
+    model_name = args.model_name
     contextDataFile = args.context_data_file_path
-    questionText = args.question_text
+    question_file_path = args.question_file_path
     prompt_text = args.prompt_text
     max_new_tokens = args.max_new_tokens
+    prefer_lora_adapter_model = args.prefer_lora_adapter_model
+
+    if model_name is None:
+        model_name = ModelManager.get_latest_model(lora_adapters_only=False)
+        print(f"Latest model is: {model_name}")
+    else:
+        print(f"Specified model: {model_name}")
+
+    model_path = f'{Config.models_dir}/{model_name}'
+
+    if prefer_lora_adapter_model is not None and prefer_lora_adapter_model is True and '-lora-adapters' not in model_name and os.path.exists(
+            f'{model_path}-lora-adapters'):
+        model_path = f'{model_path}-lora-adapters'
+        print(
+            f"Using model with LoRA adapters instead of the full model as `--prefer-lora-adapter-model` is selected. [{model_path}]")
+    else:
+        print(f"Using the full model. [{model_path}]")
 
     inference_dir = f'{Config.inferences_dir}/{runId}'
     os.makedirs(inference_dir, exist_ok=True)
 
-    question_file = f'{inference_dir}/question.txt'
+    inference_run_question_file = f'{inference_dir}/question.txt'
     ctx_data_file = f'{inference_dir}/context-data.txt'
     resp_file = f'{inference_dir}/response.txt'
     prompt_text_file = f'{inference_dir}/prompt.txt'
 
-    with open(question_file, 'w') as f:
-        f.write(questionText)
-    print(f'Wrote question text to: {question_file}')
-
     shutil.copyfile(contextDataFile, ctx_data_file)
+    shutil.copyfile(question_file_path, inference_run_question_file)
+    print(f'Wrote question text to: {inference_run_question_file}')
 
-    model_path = f'{Config.models_dir}/{modelName}'
+    with open(inference_run_question_file, 'r') as f:
+        question_text = f.read()
 
     try:
-        run_inference(model_path=model_path, question_text=questionText, prompt_text=prompt_text,
-                      ctx_file=contextDataFile, resp_file=resp_file, prompt_text_file=prompt_text_file,
-                      max_new_tokens=max_new_tokens)
+        run_inference(
+            model_path=model_path,
+            question_text=question_text,
+            prompt_text=prompt_text,
+            ctx_file=contextDataFile,
+            resp_file=resp_file,
+            prompt_text_file=prompt_text_file,
+            max_new_tokens=max_new_tokens
+        )
 
         with open(os.path.join(inference_dir, 'RUN-STATUS'), 'w') as f:
             f.write("success")
     except Exception as e:
         error_str = traceback.format_exc()
-        print(f"OCR Error: {e}. Cause: {error_str}")
+        print(f"Infer Error: {e}. Cause: {error_str}")
         with open(os.path.join(inference_dir, 'error.log'), 'w') as f:
             f.write(error_str)
         with open(os.path.join(inference_dir, 'RUN-STATUS'), 'w') as f:

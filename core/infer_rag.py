@@ -25,6 +25,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from sentence_transformers import SentenceTransformer
 from typing import List
+from utils import ModelManager
 
 
 class MyEmbeddings:
@@ -259,6 +260,15 @@ if __name__ == '__main__':
         default=128
     )
     parser.add_argument(
+        '-m',
+        '--model-name',
+        type=str,
+        dest='model_name',
+        help=f'Name of the model to use for inference. Uses the models available at: "{Config.models_dir}". If the argument is not specified, it will try to use the latest model available. Example: "llama3-8b-custom-1720545601"',
+        required=False,
+        default=None
+    )
+    parser.add_argument(
         '-e',
         '--embedding-model',
         type=str,
@@ -267,15 +277,17 @@ if __name__ == '__main__':
         required=False,
         default="Alibaba-NLP/gte-base-en-v1.5"
     )
-    required_args = parser.add_argument_group('required arguments')
-    required_args.add_argument(
-        '-m',
-        '--model-name',
-        type=str,
-        dest='model_name',
-        help=f'Name of the model to use for inference. Uses the models available at: "{Config.models_dir}". Example: "llama3-8b-custom-1720545601"',
-        required=True
+    parser.add_argument(
+        '-l',
+        '--prefer-lora-adapter-model',
+        type=bool,
+        dest='prefer_lora_adapter_model',
+        help=f'Prefers using LoRA adapter model (if available) over full model.',
+        required=False,
+        default=False
     )
+
+    required_args = parser.add_argument_group('required arguments')
     required_args.add_argument(
         '-d',
         '--data-file-path',
@@ -303,6 +315,23 @@ if __name__ == '__main__':
     question_text = args.question_text
     prompt_text = args.prompt_text
     max_new_tokens = args.max_new_tokens
+    prefer_lora_adapter_model = args.prefer_lora_adapter_model
+
+    if model_name is None:
+        model_name = ModelManager.get_latest_model(lora_adapters_only=False)
+        print(f"Latest model is: {model_name}")
+    else:
+        print(f"Specified model: {model_name}")
+
+    model_path = f'{Config.models_dir}/{model_name}'
+
+    if prefer_lora_adapter_model is not None and prefer_lora_adapter_model is True and '-lora-adapters' not in model_name and os.path.exists(
+            f'{model_path}-lora-adapters'):
+        model_path = f'{model_path}-lora-adapters'
+        print(
+            f"Using model with LoRA adapters instead of the full model as `--prefer-lora-adapter-model` is selected. [{model_path}]")
+    else:
+        print(f"Using the full model. [{model_path}]")
 
     inference_dir = f'{Config.inferences_dir}/{runId}'
     os.makedirs(inference_dir, exist_ok=True)
@@ -323,16 +352,24 @@ if __name__ == '__main__':
     embed_model_path = embedding_model_name
 
     try:
-        run_inference(model_path=model_path, embed_model_path=embed_model_path, question_text=question_text,
-                      prompt_text=prompt_text, prompt_text_file=prompt_text_file,
-                      ctx_file=context_data_file_path, resp_file=resp_file, rag_db_path=rag_db_path,
-                      max_new_tokens=max_new_tokens, chunks_text_file=chunks_text_file)
+        run_inference(
+            model_path=model_path,
+            question_text=question_text,
+            prompt_text=prompt_text,
+            ctx_file=context_data_file_path,
+            resp_file=resp_file,
+            prompt_text_file=prompt_text_file,
+            max_new_tokens=max_new_tokens,
+            chunks_text_file=chunks_text_file,
+            embed_model_path=embed_model_path,
+            rag_db_path=rag_db_path
+        )
 
         with open(os.path.join(inference_dir, 'RUN-STATUS'), 'w') as f:
             f.write("success")
     except Exception as e:
         error_str = traceback.format_exc()
-        print(f"OCR Error: {e}. Cause: {error_str}")
+        print(f"Infer RAG Error: {e}. Cause: {error_str}")
         with open(os.path.join(inference_dir, 'error.log'), 'w') as f:
             f.write(error_str)
         with open(os.path.join(inference_dir, 'RUN-STATUS'), 'w') as f:

@@ -19,9 +19,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+latest_model = ModelManager.get_latest_model(lora_adapters_only=True)
+
 
 class InferenceWithFileUploadContextParams(BaseModel):
-    model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+    model_name: str = pydantic.Field(default=latest_model,
                                      description="Name of the model")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")

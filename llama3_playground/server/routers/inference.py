@@ -20,8 +20,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-threads = []
-
 
 class InferenceWithFileUploadContextParams(BaseModel):
     model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
@@ -198,7 +196,7 @@ async def run_inference_sync_ctx_file_upload(
             }
         )
         thread.start()
-        threads.append(thread)
+
         return {
             "run_id": inference_run_id
         }

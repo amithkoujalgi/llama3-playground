@@ -1,6 +1,7 @@
 # Installs Unsloth, Xformers (Flash Attention) and all other packages!
 # !pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 # !pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
+import datetime
 import json
 import os
 import sys
@@ -127,6 +128,7 @@ def _do_train(dataset_dir: str, target_model_name: str):
 
 
 def run_train():
+    start_date_time = datetime.datetime.utcnow()
     time_now = time.time()
     trainer_run_dir = f'{Config.trainer_runs_dir}/{int(time_now)}'
     _target_model_name = f'{Config.fine_tuned_model_name_prefix}-{int(time_now)}'
@@ -161,7 +163,7 @@ def run_train():
         with open(f"{trainer_run_dir}/out.json", 'w') as f:
             model_train_meta = {
                 "model_name": _target_model_name,
-                "run_at": time_now,
+                "run_at": start_date_time,
                 "model_path": target_model_dir,
                 "train_duration": end_time - start_time
             }

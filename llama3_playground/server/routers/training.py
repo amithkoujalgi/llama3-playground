@@ -5,11 +5,10 @@ import os
 
 from fastapi import APIRouter
 
-from llama3_playground.core.utils import ModelManager
 from llama3_playground.core.config import Config
+from llama3_playground.core.utils import ModelManager
 from llama3_playground.server.routers.utils import ResponseHandler
-from llama3_playground.server.routers.utils import is_infer_process_running, is_ocr_process_running, \
-    is_training_process_running, is_any_process_running
+from llama3_playground.server.routers.utils import is_training_process_running
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,6 +61,7 @@ async def get_models_and_stats():
                         run_result = json.loads(f.read())
                         run_result['run_id'] = trainer_run
                         run_result['status'] = 'success'
+                        run_result['is_adapter_model_only'] = False
                         run_result['labels'] = []
                     if run_result['model_name'] in list_of_models:
                         model_and_stats.append(run_result)
@@ -69,6 +69,7 @@ async def get_models_and_stats():
                         lora_adapter_version = copy.deepcopy(run_result)
                         lora_adapter_version['model_name'] = f"{lora_adapter_version['model_name']}{Config.LORA_ADAPTERS_SUFFIX}"
                         lora_adapter_version['model_path'] = f"{lora_adapter_version['model_path']}{Config.LORA_ADAPTERS_SUFFIX}"
+                        lora_adapter_version['is_adapter_model_only'] = True
                         model_and_stats.append(lora_adapter_version)
                 else:
                     err_file = os.path.join(trainer_runs_dir, trainer_run, 'error.log')

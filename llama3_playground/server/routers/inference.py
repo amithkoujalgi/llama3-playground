@@ -126,8 +126,7 @@ def _run_inference_process_and_collect_result(run_id: str, model_name: str, cont
         else:
             return ResponseHandler.error(data=f'Run status file not found!')
     else:
-        return ResponseHandler.error(
-            data={"response": err, 'run_id': run_id, 'status': 'failed', 'exit_code': return_code})
+        return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
 
 
 @router.get('/status', summary='Get status of inference',

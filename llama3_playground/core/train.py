@@ -163,7 +163,7 @@ def run_train():
         with open(f"{trainer_run_dir}/out.json", 'w') as f:
             model_train_meta = {
                 "model_name": _target_model_name,
-                "run_at": start_date_time,
+                "run_at": str(start_date_time),
                 "model_path": target_model_dir,
                 "train_duration": end_time - start_time
             }

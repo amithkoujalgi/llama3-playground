@@ -200,35 +200,35 @@ async def run_inference_sync_ctx_file_upload(
 #     )
 
 
-@router.post('/sync/ocr-run', summary="Run inference in sync mode for an OCR run ID input",
-             description="API to run inference in sync mode for an OCR run. Does not return a response until it is obtained from the LLM.")
-async def run_inference_sync_ocr_run_file(inference_params: InferenceWithOCRRunIDParams):
-    inference_run_id = str(uuid.uuid4())
-
-    ocr_run_dir = f'{Config.ocr_runs_dir}/{inference_params.ocr_run_id}'
-    status_file = os.path.join(ocr_run_dir, 'RUN-STATUS')
-
-    if os.path.exists(status_file):
-        with open(status_file, 'r') as f:
-            status = f.read()
-        if 'success' in status:
-            text_result_file = os.path.join(ocr_run_dir, 'text-result.txt')
-            if os.path.exists(text_result_file):
-                return _run_inference_process_and_collect_result(
-                    run_id=inference_run_id,
-                    model_name=inference_params.model_name,
-                    context_data_file=text_result_file,
-                    question_text=inference_params.question_text,
-                    prompt_text=inference_params.prompt_text,
-                    max_new_tokens=inference_params.max_new_tokens
-                )
-            else:
-                return ResponseHandler.error(
-                    data=f'Text result file not found for OCR run ID: {inference_params.ocr_run_id}!')
-        else:
-            return ResponseHandler.error(data=f'OCR has failed for the run ID: {inference_params.ocr_run_id}!')
-    else:
-        return ResponseHandler.error(data=f'Run status file not found for OCR run ID: {inference_params.ocr_run_id}')
+# @router.post('/sync/ocr-run', summary="Run inference in sync mode for an OCR run ID input",
+#              description="API to run inference in sync mode for an OCR run. Does not return a response until it is obtained from the LLM.")
+# async def run_inference_sync_ocr_run_file(inference_params: InferenceWithOCRRunIDParams):
+#     inference_run_id = str(uuid.uuid4())
+#
+#     ocr_run_dir = f'{Config.ocr_runs_dir}/{inference_params.ocr_run_id}'
+#     status_file = os.path.join(ocr_run_dir, 'RUN-STATUS')
+#
+#     if os.path.exists(status_file):
+#         with open(status_file, 'r') as f:
+#             status = f.read()
+#         if 'success' in status:
+#             text_result_file = os.path.join(ocr_run_dir, 'text-result.txt')
+#             if os.path.exists(text_result_file):
+#                 return _run_inference_process_and_collect_result(
+#                     run_id=inference_run_id,
+#                     model_name=inference_params.model_name,
+#                     context_data_file=text_result_file,
+#                     question_text=inference_params.question_text,
+#                     prompt_text=inference_params.prompt_text,
+#                     max_new_tokens=inference_params.max_new_tokens
+#                 )
+#             else:
+#                 return ResponseHandler.error(
+#                     data=f'Text result file not found for OCR run ID: {inference_params.ocr_run_id}!')
+#         else:
+#             return ResponseHandler.error(data=f'OCR has failed for the run ID: {inference_params.ocr_run_id}!')
+#     else:
+#         return ResponseHandler.error(data=f'Run status file not found for OCR run ID: {inference_params.ocr_run_id}')
 
 
 @router.get('/async/ctx-file', summary="Run inference in async mode",

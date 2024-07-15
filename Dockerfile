@@ -2,7 +2,7 @@ FROM python:3.10.14-slim-bullseye
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git build-essential zip procps libgl1 jq curl wget && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git build-essential zip procps libgl1 jq curl wget poppler-utils && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
 
@@ -17,13 +17,16 @@ ENV BASE_MODEL "unsloth/llama-3-8b-Instruct-bnb-4bit"
 
 RUN huggingface-cli download ${BASE_MODEL}
 
-RUN rm /app/requirements.txt
-RUN mkdir -p /app/logs/
-RUN mkdir -p /app/data/
 COPY ./config.json /app/config.json
-COPY ./core /app/core
+COPY ./llama3_playground /app/llama3_playground
 COPY ./training-dataset /app/data/training-dataset
 COPY ./supervisord.conf /supervisord.conf
+COPY build_wheel.py /app/
+COPY setup.py /app/
+RUN cd /app && python build_wheel.py && pip install dist/llama3_playground-0.0.1-py3-none-any.whl
+RUN rm -rf /app/requirements.txt /app/build_wheel.py /app/setup.py /app/dist /app/*.egg-info /app/version.json
+RUN mkdir -p /app/logs/
+RUN mkdir -p /app/data/
 
 ENV EASY_OCR_MODELS_DIR "/easyocr-models"
 
@@ -38,7 +41,7 @@ RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
 
 RUN echo '#!/bin/bash' >> /start-services.sh
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh
-RUN echo 'cd /app/core && nohup gunicorn server.app:app --keep-alive 3600 --timeout 3600 --graceful-timeout 300 --threads 10 --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8070 > /app/logs/app-server.log 2>&1 &' >> /start-services.sh
+RUN echo 'cd /app/llama3_playground && nohup gunicorn server.app:app --keep-alive 3600 --timeout 3600 --graceful-timeout 300 --threads 10 --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8070 > /app/logs/app-server.log 2>&1 &' >> /start-services.sh
 RUN echo 'cd /app' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/ocr_streamlit.py --server.port 8885 --server.headless true --browser.gatherUsageStats false > /app/logs/ocr_streamlit.log 2>&1 &' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/dataset_streamlit.py --server.port 8886 --server.headless true --browser.gatherUsageStats false > /app/logs/dataset_streamlit.log 2>&1 &' >> /start-services.sh

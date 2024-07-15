@@ -1,7 +1,7 @@
-import json
 import logging
 import os
 import subprocess
+import sys
 import uuid
 from pathlib import Path
 
@@ -10,9 +10,10 @@ from fastapi import APIRouter
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
-from server.config import Config
-from server.routers.utils import ResponseHandler
-from server.routers.utils import is_infer_process_running
+from llama3_playground.core.config import Config
+from llama3_playground.server.routers.utils import ResponseHandler
+from llama3_playground.server.routers.utils import is_infer_process_running, is_ocr_process_running, \
+    is_training_process_running, is_any_process_running
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,9 +47,13 @@ class InferenceWithTextContextParams(BaseModel):
 def _run_inference_process_and_collect_result(run_id: str, model_name: str, context_data_file: str,
                                               question_text: str, prompt_text: str,
                                               max_new_tokens: int) -> JSONResponse:
+    import llama3_playground
+    module_path = llama3_playground.__file__.replace('__init__.py', '')
+    module_path = os.path.join(module_path, 'core', 'infer.py')
+
     inference_dir = f'{Config.inferences_dir}/{run_id}'
     cmd_arr = [
-        'python', '/app/core/infer.py',
+        sys.executable, module_path,
         '-r', run_id,
         '-m', model_name,
         '-d', context_data_file,

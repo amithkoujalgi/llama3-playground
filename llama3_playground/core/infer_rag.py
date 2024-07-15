@@ -19,13 +19,14 @@ import traceback
 from argparse import RawTextHelpFormatter
 from prettytable import PrettyTable
 from unsloth import FastLanguageModel
-from config import Config
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from sentence_transformers import SentenceTransformer
 from typing import List
-from utils import ModelManager
+
+from llama3_playground.core.config import Config
+from llama3_playground.core.utils import ModelManager
 
 
 class MyEmbeddings:

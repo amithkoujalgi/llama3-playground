@@ -13,15 +13,15 @@ os.environ['WANDB_MODE'] = 'disabled'
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 os.environ['TORCH_USE_CUDA_DSA'] = "1"
 
+from llama3_playground.core.config import Config
 from unsloth import FastLanguageModel
-from config import Config
 from datasets import load_dataset
 from trl import SFTTrainer
 from transformers import TrainingArguments
 from unsloth import is_bfloat16_supported
 
 
-def run_training(dataset_dir: str, target_model_name: str):
+def _do_train(dataset_dir: str, target_model_name: str):
     max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
@@ -74,9 +74,9 @@ def run_training(dataset_dir: str, target_model_name: str):
         inputs = examples["question"]
         outputs = examples["response"]
         texts = []
-        for context, input, output in zip(contexts, inputs, outputs):
+        for context, input_txt, output_txt in zip(contexts, inputs, outputs):
             # Must add EOS_TOKEN, otherwise your generation will go on forever!
-            text = prompt.format(context, input, output) + EOS_TOKEN
+            text = prompt.format(context, input_txt, output_txt) + EOS_TOKEN
             texts.append(text)
         return {"text": texts, }
 
@@ -126,18 +126,18 @@ def run_training(dataset_dir: str, target_model_name: str):
     print(f"Fine-tuning completed. Saved new model at: {target_model_name}")
 
 
-if __name__ == '__main__':
+def run_train():
     time_now = time.time()
     trainer_run_dir = f'{Config.trainer_runs_dir}/{int(time_now)}'
-    target_model_name = f'{Config.fine_tuned_model_name_prefix}-{int(time_now)}'
-    target_model_dir = f'{Config.models_dir}/{target_model_name}'
-    dataset_dir = Config.training_dataset_dir_path
+    _target_model_name = f'{Config.fine_tuned_model_name_prefix}-{int(time_now)}'
+    target_model_dir = f'{Config.models_dir}/{_target_model_name}'
+    _dataset_dir = Config.training_dataset_dir_path
 
-    if not os.path.isdir(dataset_dir):
-        os.makedirs(dataset_dir)
+    if not os.path.isdir(_dataset_dir):
+        os.makedirs(_dataset_dir)
 
-    if len(os.listdir(dataset_dir)) == 0:
-        print(f"Training dataset directory '{dataset_dir}' is empty. Please add some data here before proceeding.")
+    if len(os.listdir(_dataset_dir)) == 0:
+        print(f"Training dataset directory '{_dataset_dir}' is empty. Please add some data here before proceeding.")
         sys.exit(1)
 
     if not os.path.isdir(trainer_run_dir):
@@ -149,18 +149,18 @@ if __name__ == '__main__':
     t.align["Config"] = "r"
     t.align["Value"] = "l"
     t.add_row(['trainer_run_dir', trainer_run_dir])
-    t.add_row(['target_model_name', target_model_name])
+    t.add_row(['target_model_name', _target_model_name])
     t.add_row(['target_model_dir', target_model_dir])
-    t.add_row(['dataset_dir', dataset_dir])
+    t.add_row(['dataset_dir', _dataset_dir])
     print(t)
 
     try:
         start_time = time.time()
-        run_training(dataset_dir=dataset_dir, target_model_name=target_model_dir)
+        _do_train(dataset_dir=_dataset_dir, target_model_name=target_model_dir)
         end_time = time.time()
         with open(f"{trainer_run_dir}/out.json", 'w') as f:
             model_train_meta = {
-                "model_name": target_model_name,
+                "model_name": _target_model_name,
                 "run_at": time_now,
                 "model_path": target_model_dir,
                 "train_duration": end_time - start_time
@@ -176,3 +176,7 @@ if __name__ == '__main__':
             f.write(error_str)
         with open(os.path.join(trainer_run_dir, 'RUN-STATUS'), 'w') as f:
             f.write("failure")
+
+
+if __name__ == '__main__':
+    run_train()

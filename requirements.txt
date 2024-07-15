@@ -19,9 +19,6 @@ gunicorn
 fastapi
 fastapi_pagination
 python-multipart
-
-
-
 langchain_community==0.2.7
 sentence_transformers==3.0.1
 pysqlite3-binary==0.5.3

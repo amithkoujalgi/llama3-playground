@@ -3,17 +3,16 @@ import argparse
 import json
 import os
 import shutil
-import sys
 import traceback
 import uuid
-
-from config import Config
 
 import cv2
 import easyocr
 import numpy as np
-from prettytable import PrettyTable
 from fillpdf import fillpdfs
+from prettytable import PrettyTable
+
+from llama3_playground.core.config import Config
 
 
 def pdf_to_images(pdf_path: str, pdf_pages_to_images_dir: str) -> []:

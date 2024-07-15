@@ -4,25 +4,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
-from server.routers.inference import router as inference_router
-from server.routers.training import router as training_router
-from server.routers.ocr_extraction import router as ocr_extraction_router
+from llama3_playground.server.routers.inference import router as inference_router
+from llama3_playground.server.routers.training import router as training_router
+from llama3_playground.server.routers.ocr_extraction import router as ocr_extraction_router
 
-INSTANCE_NAME = 'llama3'
-BUILD_NUMBER = '0.0.1'
-
-app_title = f"Model Server: {INSTANCE_NAME}"
-app_version = f"{BUILD_NUMBER}"
+app_title = 'Llama3 Playground'
+app_version = '0.0.1'
 app_desc = (
     f"<p>"
-    f"REST API server for model serving."
+    f"REST API server for model training and serving."
     f"</p>"
 )
 
 origins = os.getenv("CORS_ORIGINS", "*").split(" ")  # provide all the allowed origins as space separated
 app = FastAPI(
     title=app_title,
-    version=f"{BUILD_NUMBER}",
+    version=app_version,
     description=app_desc,
     swagger_ui_parameters={
         "defaultModelsExpandDepth": -1,  # To hide the schema section from swagger docs

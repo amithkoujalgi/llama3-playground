@@ -4,7 +4,7 @@ import os
 
 import uvicorn
 
-from server.app import app
+from llama3_playground.server.app import app
 
 if __name__ == "__main__":
     HOST = os.getenv("SERVER_HOST", "0.0.0.0")

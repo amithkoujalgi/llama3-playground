@@ -4,7 +4,10 @@ import os
 
 from fastapi import APIRouter
 
-from server.routers.utils import ResponseHandler, is_training_process_running
+from llama3_playground.core.config import Config
+from llama3_playground.server.routers.utils import ResponseHandler
+from llama3_playground.server.routers.utils import is_infer_process_running, is_ocr_process_running, \
+    is_training_process_running, is_any_process_running
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -43,8 +46,8 @@ async def get_models_and_stats():
                     else:
                         run_err = None
                     model_and_stats.append({"run_id": trainer_run, "status": "failed", "error": run_err})
-            else:
-                model_and_stats.append({"run_id": trainer_run, "status": "running"})
+            # else:
+            #     model_and_stats.append({"run_id": trainer_run, "status": "running"})
         return ResponseHandler.success(data=model_and_stats)
     except FileNotFoundError as e:
         return ResponseHandler.success(data=[])

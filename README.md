@@ -79,12 +79,20 @@ This starts the Docker container with the following services.
 
 ### Running commands from Jupyter
 
-Train model:
+#### Train model
+
+Go to terminal and type
 
 ```shell
-cd /app/core
+playground --train
+```
 
-python train.py
+#### List models
+
+Go to terminal and type
+
+```shell
+playground -l
 ```
 
 This produces models under `/app/data/trained-models/`. The trainer script produces 2 models:
@@ -95,7 +103,7 @@ This produces models under `/app/data/trained-models/`. The trainer script produ
 Run OCR:
 
 ```shell
-cd /app/core
+cd /app/llama3_playground/core
 
 python ocr.py \
   -f "/app/sample.pdf"
@@ -106,7 +114,7 @@ For understanding what the options mean, go to JupyterLab and execute `python oc
 Inference with RAG:
 
 ```shell
-cd /app/core
+cd /app/llama3_playground/core
 
 python infer_rag.py \
   -m "llama-3-8b-instruct-custom-1720802202" \

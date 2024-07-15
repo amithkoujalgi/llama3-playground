@@ -1,20 +1,21 @@
 # Installs Unsloth, Xformers (Flash Attention) and all other packages!
 # !pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 # !pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
-import argparse
 import os
-import shutil
-import traceback
-import uuid
-from argparse import RawTextHelpFormatter
-from utils import ModelManager
-from prettytable import PrettyTable
 
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 os.environ['WANDB_MODE'] = 'disabled'
 
 from unsloth import FastLanguageModel
-from config import Config
+import shutil
+import traceback
+import uuid
+from argparse import RawTextHelpFormatter
+from prettytable import PrettyTable
+import argparse
+
+from llama3_playground.core.config import Config
+from llama3_playground.core.utils import ModelManager
 
 
 def run_inference(model_path: str, question_text: str, prompt_text: str, ctx_file: str, resp_file: str,

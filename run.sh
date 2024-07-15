@@ -1,5 +1,7 @@
 #!/bin/bash
 
+docker container prune -f
+
 docker run \
   --gpus=all \
   -it \

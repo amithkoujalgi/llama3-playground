@@ -6,7 +6,7 @@ from llama3_playground.core.config import Config
 
 class ModelManager:
     @staticmethod
-    def list_trained_models(include_lora_adapters: bool = False) -> [str]:
+    def list_trained_models(include_lora_adapters: bool = True) -> [str]:
         _models = os.listdir(Config.models_dir)
         if include_lora_adapters:
             _models = sorted([m for m in _models], reverse=True)

@@ -4,6 +4,7 @@ import os
 
 from fastapi import APIRouter
 
+from llama3_playground.core.utils import ModelManager
 from llama3_playground.core.config import Config
 from llama3_playground.server.routers.utils import ResponseHandler
 from llama3_playground.server.routers.utils import is_infer_process_running, is_ocr_process_running, \
@@ -27,6 +28,29 @@ async def get_models_and_stats():
     trainer_runs_dir = "/app/data/trainer-runs"
     try:
         model_and_stats = []
+        # for trainer_run in os.listdir(trainer_runs_dir):
+        #     status_file = os.path.join(trainer_runs_dir, trainer_run, 'RUN-STATUS')
+        #     if os.path.exists(status_file):
+        #         with open(status_file, "r") as f:
+        #             run_status = f.read()
+        #         if 'success' in run_status:
+        #             with open(os.path.join(trainer_runs_dir, trainer_run, 'out.json'), "r") as f:
+        #                 run_result = json.loads(f.read())
+        #                 run_result['run_id'] = trainer_run
+        #                 run_result['status'] = 'success'
+        #             model_and_stats.append(run_result)
+        #         else:
+        #             err_file = os.path.join(trainer_runs_dir, trainer_run, 'error.log')
+        #             if os.path.exists(err_file):
+        #                 with open(err_file, "r") as f:
+        #                     run_err = f.read()
+        #             else:
+        #                 run_err = None
+        #             model_and_stats.append({"run_id": trainer_run, "status": "failed", "error": run_err})
+        #     # else:
+        #     #     model_and_stats.append({"run_id": trainer_run, "status": "running"})
+
+        list_of_models = ModelManager.list_trained_models(include_lora_adapters=True)
         for trainer_run in os.listdir(trainer_runs_dir):
             status_file = os.path.join(trainer_runs_dir, trainer_run, 'RUN-STATUS')
             if os.path.exists(status_file):
@@ -37,7 +61,8 @@ async def get_models_and_stats():
                         run_result = json.loads(f.read())
                         run_result['run_id'] = trainer_run
                         run_result['status'] = 'success'
-                    model_and_stats.append(run_result)
+                    if run_result['model_name'] in list_of_models:
+                        model_and_stats.append(run_result)
                 else:
                     err_file = os.path.join(trainer_runs_dir, trainer_run, 'error.log')
                     if os.path.exists(err_file):
@@ -46,8 +71,6 @@ async def get_models_and_stats():
                     else:
                         run_err = None
                     model_and_stats.append({"run_id": trainer_run, "status": "failed", "error": run_err})
-            # else:
-            #     model_and_stats.append({"run_id": trainer_run, "status": "running"})
         return ResponseHandler.success(data=model_and_stats)
     except FileNotFoundError as e:
         return ResponseHandler.success(data=[])

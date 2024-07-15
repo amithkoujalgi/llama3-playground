@@ -4,6 +4,7 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
+from threading import Thread
 
 import pydantic
 from fastapi import APIRouter, UploadFile, File, Depends
@@ -18,6 +19,8 @@ from llama3_playground.server.routers.utils import is_infer_process_running
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+threads = []
 
 
 class InferenceWithFileUploadContextParams(BaseModel):
@@ -135,20 +138,6 @@ async def inference_status():
     return ResponseHandler.success(data={"running": is_infer_process_running()})
 
 
-# @router.post('/sync/ctx-file-path', summary="Run inference in sync mode with context file path input",
-#              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
-# async def run_inference_sync_ctx_file_path(inference_params: InferenceWithFileContextParams):
-#     inference_run_id = str(uuid.uuid4())
-#     return _run_inference_process_and_collect_result(
-#         run_id=inference_run_id,
-#         model_name=inference_params.model_name,
-#         context_data_file=inference_params.context_data_file,
-#         question_text=inference_params.question_text,
-#         prompt_text=inference_params.prompt_text,
-#         max_new_tokens=inference_params.max_new_tokens
-#     )
-
-
 @router.post('/sync/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
 async def run_inference_sync_ctx_file_upload(
@@ -178,6 +167,86 @@ async def run_inference_sync_ctx_file_upload(
     finally:
         context_data_file.file.close()
 
+
+@router.post('/async/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
+             description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
+async def run_inference_sync_ctx_file_upload(
+        inference_params: InferenceWithFileUploadContextParams = Depends(),
+        context_data_file: UploadFile = File(...)
+):
+    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    uploaded_ctx_file = os.path.join(uploads_dir, context_data_file.filename)
+    try:
+        contents = context_data_file.file.read()
+        with open(uploaded_ctx_file, 'wb') as f:
+            f.write(contents)
+
+        inference_run_id = str(uuid.uuid4())
+
+        thread = Thread(
+            name=inference_run_id,
+            target=_run_inference_process_and_collect_result,
+            kwargs={
+                "run_id": inference_run_id,
+                "model_name": inference_params.model_name,
+                "context_data_file": uploaded_ctx_file,
+                "question_text": inference_params.question_text,
+                "prompt_text": inference_params.prompt_text,
+                "max_new_tokens": inference_params.max_new_tokens,
+                "embedding_model": inference_params.embedding_model
+            }
+        )
+        thread.start()
+        threads.append(thread)
+        return {
+            "run_id": inference_run_id
+        }
+    except Exception as e:
+        return ResponseHandler.error(data="Error running inference", exception=e)
+    finally:
+        context_data_file.file.close()
+
+
+@router.get('/async/with-ctx-file/{run_id}', summary='Get status of inference',
+            description='API to get details of inference run.')
+async def get_inference_run_details(run_id: str):
+    inference_run_dir = f'{Config.inferences_dir}/{run_id}'
+    if os.path.exists(inference_run_dir):
+        status_file = os.path.join(inference_run_dir, 'RUN-STATUS')
+        if os.path.exists(status_file):
+            with open(status_file, 'r') as f:
+                status = f.read()
+            if 'success' in status:
+                response_file = os.path.join(inference_run_dir, 'response.txt')
+                if os.path.exists(response_file):
+                    with open(response_file, 'r') as rf:
+                        response = rf.read()
+                        return ResponseHandler.success(
+                            data={"response": response, 'run_id': run_id, 'status': 'success'})
+                else:
+                    return ResponseHandler.error(data='Response file not found!')
+            else:
+                err_file = os.path.join(inference_run_dir, 'error.log')
+                if os.path.exists(err_file):
+                    with open(err_file, 'r') as rf:
+                        err = rf.read()
+                        return ResponseHandler.error(data=f'Inference failed! Reason: {err}')
+                else:
+                    return ResponseHandler.error(data=f'Error log file not found!')
+        else:
+            return ResponseHandler.success(
+                data={"response": None, 'run_id': run_id, 'status': 'running'})
+    else:
+        return ResponseHandler.error(data=f"Couldn't get inference run details for run ID {run_id}")
+
+# @router.get('/models', summary="List all models", description="API to list all models")
+# async def list_models():
+#     models_dir = "/app/data/trained-models"
+#     try:
+#         return ResponseHandler.success(data=os.listdir(models_dir))
+#     except FileNotFoundError as e:
+#         return ResponseHandler.success(data=[])
 
 # @router.post('/sync/ctx-text', summary="Run inference in sync mode with context text data input",
 #              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
@@ -229,39 +298,15 @@ async def run_inference_sync_ctx_file_upload(
 #             return ResponseHandler.error(data=f'OCR has failed for the run ID: {inference_params.ocr_run_id}!')
 #     else:
 #         return ResponseHandler.error(data=f'Run status file not found for OCR run ID: {inference_params.ocr_run_id}')
-
-
-@router.get('/async/ctx-file', summary="Run inference in async mode",
-            description="API to run inference in async mode. Returns a run ID to monitor the status with.")
-async def run_inference_async(inference_params: InferenceWithFileContextParams):
-    inference_run_id = str(uuid.uuid4())
-
-    ctxs_dir = os.path.join(str(Path.home()), 'temp-data', 'llm-contexts')
-    os.makedirs(ctxs_dir, exist_ok=True)
-    ctx_data_file = os.path.join(ctxs_dir, f'ctx-{inference_run_id}.txt')
-    with open(ctx_data_file, 'w') as f:
-        f.write(inference_params.context_data)
-
-    # _run_inference_process_and_collect_result(
-    #     run_id=inference_run_id,
-    #     model_name=inference_params.model_name,
-    #     context_data_file=ctx_data_file,
-    #     question_text=inference_params.question_text,
-    #         prompt_text=inference_params.prompt_text,
-    #         max_new_tokens=inference_params.max_new_tokens
-    # )
-
-    return ResponseHandler.success(
-        data={
-            'run_id': inference_run_id,
-            'status': 'initiated'
-        }
-    )
-
-# @router.get('/models', summary="List all models", description="API to list all models")
-# async def list_models():
-#     models_dir = "/app/data/trained-models"
-#     try:
-#         return ResponseHandler.success(data=os.listdir(models_dir))
-#     except FileNotFoundError as e:
-#         return ResponseHandler.success(data=[])
+# @router.post('/sync/ctx-file-path', summary="Run inference in sync mode with context file path input",
+#              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
+# async def run_inference_sync_ctx_file_path(inference_params: InferenceWithFileContextParams):
+#     inference_run_id = str(uuid.uuid4())
+#     return _run_inference_process_and_collect_result(
+#         run_id=inference_run_id,
+#         model_name=inference_params.model_name,
+#         context_data_file=inference_params.context_data_file,
+#         question_text=inference_params.question_text,
+#         prompt_text=inference_params.prompt_text,
+#         max_new_tokens=inference_params.max_new_tokens
+#     )

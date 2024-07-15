@@ -5,8 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 
 from llama3_playground.server.routers.inference import router as inference_router
-from llama3_playground.server.routers.training import router as training_router
+from llama3_playground.server.routers.models import router as models_router
 from llama3_playground.server.routers.ocr_extraction import router as ocr_extraction_router
+from llama3_playground.server.routers.training import router as training_router
 
 app_title = 'Llama3 Playground'
 app_version = '0.0.1'
@@ -67,6 +68,12 @@ app.include_router(
     ocr_extraction_router,
     prefix="/api/ocr",
     tags=["ocr"],
+)
+
+app.include_router(
+    models_router,
+    prefix="/api/models",
+    tags=["models"],
 )
 
 app.add_middleware(

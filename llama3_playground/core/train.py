@@ -163,9 +163,11 @@ def run_train():
         with open(f"{trainer_run_dir}/out.json", 'w') as f:
             model_train_meta = {
                 "model_name": _target_model_name,
-                "run_at_utc_time": str(start_date_time),
                 "model_path": target_model_dir,
-                "train_duration": end_time - start_time
+                "run_at_utc_time": str(start_date_time),
+                "start_time": start_time,
+                "end_time": end_time,
+                "run_duration_in_seconds": end_time - start_time
             }
             json.dump(model_train_meta, f)
 

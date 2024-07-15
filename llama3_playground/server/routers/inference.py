@@ -205,7 +205,7 @@ async def run_inference_sync_ctx_file_upload(
         context_data_file.file.close()
 
 
-@router.get('/async/with-ctx-file/{run_id}', summary='Get status of inference',
+@router.get('/status/{run_id}', summary='Get status of inference',
             description='API to get details of inference run.')
 async def get_inference_run_details(run_id: str):
     inference_run_dir = f'{Config.inferences_dir}/{run_id}'

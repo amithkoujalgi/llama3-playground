@@ -30,8 +30,8 @@ class ModelManager:
                 _lora_model = f'{_latest}{Config.LORA_ADAPTERS_SUFFIX}'
                 _lora_model_dir = os.path.join(Config.models_dir, _lora_model)
                 if os.path.exists(_lora_model_dir):
-                    return None
-                else:
                     return _lora_model
+                else:
+                    return None
             else:
                 return _latest

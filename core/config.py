@@ -16,3 +16,4 @@ class Config:
     ocr_runs_dir = get_config()['ocr_runs_dir']
     inferences_dir = get_config()['inferences_dir']
     fine_tuned_model_name_prefix = get_config()['fine_tuned_model_name_prefix']
+    LORA_ADAPTERS_SUFFIX = '-lora-adapters'

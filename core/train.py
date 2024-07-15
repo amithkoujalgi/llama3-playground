@@ -1,7 +1,6 @@
 # Installs Unsloth, Xformers (Flash Attention) and all other packages!
 # !pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 # !pip install --no-deps xformers "trl<0.9.0" peft accelerate bitsandbytes
-import argparse
 import json
 import os
 import sys
@@ -113,7 +112,7 @@ def run_training(dataset_dir: str, target_model_name: str):
     trainer_stats = trainer.train()
 
     # Local saving of LoRA adapters only!
-    target_model_name_lora_adapters = f'{target_model_name}-lora-adapters'
+    target_model_name_lora_adapters = f'{target_model_name}{Config.LORA_ADAPTERS_SUFFIX}'
     model.save_pretrained(target_model_name_lora_adapters)
     tokenizer.save_pretrained(target_model_name_lora_adapters)
     print(f"Saved LoRA adapters at: {target_model_name_lora_adapters}")

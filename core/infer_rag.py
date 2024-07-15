@@ -325,9 +325,9 @@ if __name__ == '__main__':
 
     model_path = f'{Config.models_dir}/{model_name}'
 
-    if prefer_lora_adapter_model is not None and prefer_lora_adapter_model is True and '-lora-adapters' not in model_name and os.path.exists(
-            f'{model_path}-lora-adapters'):
-        model_path = f'{model_path}-lora-adapters'
+    if prefer_lora_adapter_model is not None and prefer_lora_adapter_model is True and Config.LORA_ADAPTERS_SUFFIX not in model_name and os.path.exists(
+            f'{model_path}{Config.LORA_ADAPTERS_SUFFIX}'):
+        model_path = f'{model_path}{Config.LORA_ADAPTERS_SUFFIX}'
         print(
             f"Using model with LoRA adapters instead of the full model as `--prefer-lora-adapter-model` is selected. [{model_path}]")
     else:

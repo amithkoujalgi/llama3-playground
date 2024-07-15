@@ -153,7 +153,7 @@ if __name__ == '__main__':
         '--question-file-path',
         type=str,
         dest='question_file_path',
-        help='Path to the file that contains a auestion to be asked to the LLM. Example: "/app/question.txt"',
+        help='Path to the file that contains a question to be asked to the LLM. Example: "/app/question.txt"',
         required=True
     )
 
@@ -182,7 +182,7 @@ if __name__ == '__main__':
         print(
             f"Using model with LoRA adapters instead of the full model as `--prefer-lora-adapter-model` is selected. [{model_path}]")
     else:
-        print(f"Using the full model. [{model_path}]")
+        print(f"Using the full model: [{model_path}]")
 
     inference_dir = f'{Config.inferences_dir}/{runId}'
     os.makedirs(inference_dir, exist_ok=True)

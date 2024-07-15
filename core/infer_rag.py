@@ -273,7 +273,7 @@ if __name__ == '__main__':
         '--embedding-model',
         type=str,
         dest='embedding_model_name',
-        help='Embedding Model Name. Example: "Alibaba-NLP/gte-base-en-v1.5", "Snowflake/snowflake-arctic-embed-l". Default is "Alibaba-NLP/gte-base-en-v1.5". Refer: https://huggingface.co/spaces/mteb/leaderboard',
+        help='Embedding Model Name. Example: "Alibaba-NLP/gte-base-en-v1.5", "BAAI/bge-base-en-v1.5", "Snowflake/snowflake-arctic-embed-l". Default is "Alibaba-NLP/gte-base-en-v1.5". Refer: https://huggingface.co/spaces/mteb/leaderboard',
         required=False,
         default="Alibaba-NLP/gte-base-en-v1.5"
     )
@@ -298,10 +298,10 @@ if __name__ == '__main__':
     )
     required_args.add_argument(
         '-q',
-        '--question-text',
+        '--question-file-path',
         type=str,
-        dest='question_text',
-        help='Question to be asked to the LLM. Example: "Who is Jashpal?"',
+        dest='question_file_path',
+        help='Path to the file that contains a question to be asked to the LLM. Example: "/app/question.txt"',
         required=True
     )
 
@@ -312,7 +312,7 @@ if __name__ == '__main__':
     model_name = args.model_name
     embedding_model_name = args.embedding_model_name
     context_data_file_path = args.context_data_file_path
-    question_text = args.question_text
+    question_file_path = args.question_file_path
     prompt_text = args.prompt_text
     max_new_tokens = args.max_new_tokens
     prefer_lora_adapter_model = args.prefer_lora_adapter_model
@@ -331,26 +331,27 @@ if __name__ == '__main__':
         print(
             f"Using model with LoRA adapters instead of the full model as `--prefer-lora-adapter-model` is selected. [{model_path}]")
     else:
-        print(f"Using the full model. [{model_path}]")
+        print(f"Using the full model:[{model_path}]")
 
     inference_dir = f'{Config.inferences_dir}/{runId}'
     os.makedirs(inference_dir, exist_ok=True)
 
-    question_file = f'{inference_dir}/question.txt'
+    inference_run_question_file = f'{inference_dir}/question.txt'
     ctx_data_file = f'{inference_dir}/context-data.txt'
     resp_file = f'{inference_dir}/response.txt'
     prompt_text_file = f'{inference_dir}/prompt.txt'
     chunks_text_file = f'{inference_dir}/chunks-picked.txt'
     rag_db_path = f'{inference_dir}/db'
 
-    with open(question_file, 'w') as f:
-        f.write(question_text)
-
-    shutil.copyfile(context_data_file_path, ctx_data_file)
-
     model_path = f'{Config.models_dir}/{model_name}'
     embed_model_path = embedding_model_name
 
+    shutil.copyfile(context_data_file_path, ctx_data_file)
+    shutil.copyfile(question_file_path, inference_run_question_file)
+    print(f'Wrote question text to: {inference_run_question_file}')
+
+    with open(inference_run_question_file, 'r') as f:
+        question_text = f.read()
     try:
         run_inference(
             model_path=model_path,

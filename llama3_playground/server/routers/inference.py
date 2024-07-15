@@ -6,7 +6,7 @@ import uuid
 from pathlib import Path
 
 import pydantic
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, Depends
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
@@ -24,7 +24,9 @@ class InferenceWithFileUploadContextParams(BaseModel):
     model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
                                      description="Name of the model")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
-    prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
+    prompt_text: str = pydantic.Field(
+        default='You are a helpful assistant. You answer the questions precisely and concisely and if you do not know the answer you promptly say that you do not know. You do not respond with any extra text apart from what has been asked.',
+        description="Custom prompt text for the model")
     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
     embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
                                           description="Embedding model to use. Note: new embedding models would be downloaded")
@@ -149,13 +151,15 @@ async def run_inference_sync_ctx_file_path(inference_params: InferenceWithFileCo
 
 @router.post('/sync/ctx-file', summary="Run inference in sync mode with by uploading a context file",
              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
-async def run_inference_sync_ctx_file_upload(inference_params: InferenceWithFileUploadContextParams,
-                                             file: UploadFile = File(...)):
+async def run_inference_sync_ctx_file_upload(
+        inference_params: InferenceWithFileUploadContextParams = Depends(),
+        context_data_file: UploadFile = File(...)
+):
     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
     os.makedirs(uploads_dir, exist_ok=True)
-    uploaded_ctx_file = os.path.join(uploads_dir, file.filename)
+    uploaded_ctx_file = os.path.join(uploads_dir, context_data_file.filename)
     try:
-        contents = file.file.read()
+        contents = context_data_file.file.read()
         with open(uploaded_ctx_file, 'wb') as f:
             f.write(contents)
 
@@ -172,7 +176,7 @@ async def run_inference_sync_ctx_file_upload(inference_params: InferenceWithFile
     except Exception as e:
         return ResponseHandler.error(data="Error running inference", exception=e)
     finally:
-        file.file.close()
+        context_data_file.file.close()
 
 
 @router.post('/sync/ctx-text', summary="Run inference in sync mode with context text data input",

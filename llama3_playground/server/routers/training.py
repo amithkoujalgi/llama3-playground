@@ -1,3 +1,4 @@
+import copy
 import json
 import logging
 import os
@@ -61,8 +62,14 @@ async def get_models_and_stats():
                         run_result = json.loads(f.read())
                         run_result['run_id'] = trainer_run
                         run_result['status'] = 'success'
+                        run_result['labels'] = []
                     if run_result['model_name'] in list_of_models:
                         model_and_stats.append(run_result)
+                        # also include LoRA adapters
+                        lora_adapter_version = copy.deepcopy(run_result)
+                        lora_adapter_version['model_name'] = f"{lora_adapter_version['model_name']}{Config.LORA_ADAPTERS_SUFFIX}"
+                        lora_adapter_version['model_path'] = f"{lora_adapter_version['model_path']}{Config.LORA_ADAPTERS_SUFFIX}"
+                        model_and_stats.append(lora_adapter_version)
                 else:
                     err_file = os.path.join(trainer_runs_dir, trainer_run, 'error.log')
                     if os.path.exists(err_file):

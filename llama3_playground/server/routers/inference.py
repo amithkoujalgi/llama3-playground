@@ -11,6 +11,7 @@ from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
 from llama3_playground.core.config import Config
+from llama3_playground.core.utils import ModelManager
 from llama3_playground.server.routers.utils import ResponseHandler
 from llama3_playground.server.routers.utils import is_infer_process_running
 
@@ -20,7 +21,8 @@ router = APIRouter()
 
 
 class InferenceWithFileUploadContextParams(BaseModel):
-    model_name: str = pydantic.Field(default=None, description="Name of the model")
+    model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+                                     description="Name of the model")
     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")

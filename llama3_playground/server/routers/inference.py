@@ -149,7 +149,7 @@ async def inference_status():
 #     )
 
 
-@router.post('/sync/ctx-file', summary="Run inference in sync mode with by uploading a context file",
+@router.post('/sync/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
 async def run_inference_sync_ctx_file_upload(
         inference_params: InferenceWithFileUploadContextParams = Depends(),

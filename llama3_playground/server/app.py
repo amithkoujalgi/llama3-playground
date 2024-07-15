@@ -23,7 +23,7 @@ app = FastAPI(
     version=app_version,
     description=app_desc,
     swagger_ui_parameters={
-        # "defaultModelsExpandDepth": -1,  # To hide the schema section from swagger docs
+        "defaultModelsExpandDepth": -1,  # To hide the schema section from swagger docs
         "requestSnippetsEnabled": True,
         "displayRequestDuration": True,
         "filter": True,

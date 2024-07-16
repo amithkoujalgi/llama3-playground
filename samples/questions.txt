@@ -1,0 +1,37 @@
+These fields are mentioned in employer information section where details such as adopting employer name, address, city, state, zip, TIN, account number, Trust ID are specified
+
+Employer Name: 'EMPLOYER_NAME'
+Address: 'EMPLOYER_ADDRESS'
+---PAGE-SEP---
+City: 'EMPLOYER_CITY'
+State: 'EMPLOYER_STATE'
+Zip (in 5 digit format): 'EMPLOYER_ZIP'
+---PAGE-SEP---
+Telephone number: 'EMPLOYER_TELEPHONE'
+TIN: 'EMPLOYER_TIN'
+Tax Year End: 'EMPLOYER_TAX_YEAR_END'
+Type of Business: 'EMPLOYER_TYPE_OF_BUSINESS'
+Plan Name: 'EMPLOYER_PLAN_NAME'
+Plan Sequence Number: 'EMPLOYER_PLAN_SEQUENCE_NUMBER'
+Trust ID: 'EMPLOYER_TRUST_ID'
+Account Number: 'EMPLOYER_ACCOUNT_NUMBER'
+Is it a new plan or existing plan (as true or false): 'NEW_PLAN'
+Plan Effective Date: 'PLAN_EFFECTIVE_DATE'
+Effective Date of Amendment or Restatement: 'AMENDMENT_EFFECTIVE_DATE'
+Initial Plan Document Effective Date: 'INITIAL_PLAN_DOCUMENT_EFFECTIVE_DATE'
+Frozen Plan Effective Date: 'FROZEN_PLAN_EFFECTIVE_DATE'
+---PAGE-SEP---
+Age requirement in months: 'AGE_REQUIREMENT_IN_MONTHS'
+Eligibility Service Requirement in months (0 if not required): 'ELIGIBILITY_SERVICE_REQUIREMENT_IN_MONTHS'
+Employee Employed Date: 'EMPLOYEE_EMPLOYED_DATE'
+Does the waiver apply to all employees (as true or false): 'EMPLOYEE_CLASSIFICATION_ALL'
+Does the waiver apply to employees defined (as true or false): 'EMPLOYEE_CLASSIFICATION_DEFINED'
+Employees Employeed Entry Date - Option: Should use the above specified date (as true or false): 'ENTRY_DATE_SAME_AS_ABOVE'
+Employees Employeed Entry Date - Option: Specified date in month, day and year format: 'ENTRY_DATE'
+Will Elective Deferrals be permitted (as true or false): 'ELECTIVE_DEFERRALS_PERMITTED'
+Will Roth Elective Deferrals be permitted (as true or false): 'ROTH_DEFERRALS_PERMITTED'
+---PAGE-SEP---
+May a Contributing Participant make Nondeductible Employee Contributions (as true or false): 'NONDEDUCTIBLE_CONTRIBUTIONS_PERMITTED'
+Will a Participant be entitled to request a loan (as true or false): 'LOANS_PERMITTED'
+Will life insurance investments be permitted (as true or false): 'LIFE_INSURANCE_INVESTMENTS_PERMITTED'
+Will a Participant be allowed to purchase and distribute Qualifying Longevity Annuity Contracts (as true or false): 'QUALIFYING_LONGEVITY_ANNUITY_CONTRACTS_PERMITTED'

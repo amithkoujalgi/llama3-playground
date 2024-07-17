@@ -1,10 +1,10 @@
-build-image:
+image:
 	docker image prune -f; docker build -t llama3-playground:0.1 .;
 
-build-wheel:
+wheel:
 	python build_wheel.py;
 
-run-gpu:
+start-gpu:
 	docker container prune -f; docker run --gpus=all \
 	    --shm-size 8G \
 		-it \
@@ -17,7 +17,7 @@ run-gpu:
 		-v ~/llama3-playground-data:/app/data \
 		llama3-playground:0.1;
 
-run:
+start:
 	docker container prune -f; docker run \
 		-it \
 		-p "8883:8070" \

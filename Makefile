@@ -6,6 +6,7 @@ build-wheel:
 
 run-gpu:
 	docker container prune -f; docker run --gpus=all \
+	    --shm-size 8G \
 		-it \
 		-p "8883:8070" \
 		-p "8884:9001" \

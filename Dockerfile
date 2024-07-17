@@ -20,6 +20,7 @@ RUN huggingface-cli download ${BASE_MODEL}
 COPY ./config.json /app/config.json
 COPY ./llama3_playground /app/llama3_playground
 COPY ./training-dataset /app/data/training-dataset
+COPY ./models /app/models
 COPY ./supervisord.conf /supervisord.conf
 COPY build_wheel.py /app/
 COPY setup.py /app/
@@ -38,6 +39,9 @@ RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
     wget -O english_g2.zip https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip &&  \
     unzip english_g2.zip &&  \
     rm english_g2.zip
+
+RUN apt update && apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6
+RUN wandb disabled
 
 RUN echo '#!/bin/bash' >> /start-services.sh
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh

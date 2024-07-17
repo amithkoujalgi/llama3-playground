@@ -1,0 +1,7 @@
+path: /app/data/training-dataset/yolo-ocr
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 2
+names: [ 'checked', 'unchecked' ]

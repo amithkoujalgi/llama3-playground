@@ -2,7 +2,9 @@ FROM python:3.10.14-slim-bullseye
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y git build-essential zip procps libgl1 jq curl wget poppler-utils && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y git build-essential zip procps libgl1 jq curl wget poppler-utils libglib2.0-0 libsm6 libxrender1 libxext6 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
 
@@ -40,11 +42,11 @@ RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
     unzip english_g2.zip &&  \
     rm english_g2.zip
 
-RUN apt update && apt-get install -y libglib2.0-0 libsm6 libxrender1 libxext6
 RUN wandb disabled
 
 RUN echo '#!/bin/bash' >> /start-services.sh
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh
+RUN echo 'wandb disabled' >> /start-services.sh
 RUN echo 'cd /app/llama3_playground && nohup gunicorn server.app:app --keep-alive 3600 --timeout 3600 --graceful-timeout 300 --threads 10 --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8070 > /app/logs/app-server.log 2>&1 &' >> /start-services.sh
 RUN echo 'cd /app' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/ocr_streamlit.py --server.port 8885 --server.headless true --browser.gatherUsageStats false > /app/logs/ocr_streamlit.log 2>&1 &' >> /start-services.sh

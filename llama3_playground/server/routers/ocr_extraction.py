@@ -174,7 +174,7 @@ async def ocr_status():
     return ResponseHandler.success(data={"running": is_ocr_process_running()})
 
 
-@router.post('/sync/pdf', summary="Run OCR in sync mode on a PDF file", deprecated=True,
+@router.post('/sync/pdf/old', summary="Run OCR in sync mode on a PDF file", deprecated=True,
              description="API to run OCR in sync mode on a PDF file and return a response. Does not return a response until OCR process is completed.")
 async def run_ocr_sync_pdf(file: UploadFile = File(...)):
     ocr_run_id = str(uuid.uuid4())
@@ -192,7 +192,8 @@ async def run_ocr_sync_pdf(file: UploadFile = File(...)):
         file.file.close()
 
 
-@router.post('/sync/pdf-yolo', summary="Run OCR in sync mode on a PDF file",
+@router.post('/sync/pdf',
+             summary="Run OCR in sync mode on a PDF file. Uses YOLOv8 model from ultralytics - https://github.com/ultralytics",
              description="API to run OCR in sync mode on a PDF file and return a response. Does not return a response until OCR process is completed.")
 async def run_ocr_sync_pdf_yolo(file: UploadFile = File(...)):
     ocr_run_id = str(uuid.uuid4())

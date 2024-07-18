@@ -33,6 +33,14 @@ class InferenceWithFileUploadContextParams(BaseModel):
                                           description="Embedding model to use. Note: new embedding models would be downloaded")
 
 
+class InferenceWithJSONFileUploadContextParams(BaseModel):
+    model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+                                     description="Name of the model")
+    max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
+    embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
+                                          description="Embedding model to use. Note: new embedding models would be downloaded")
+
+
 # class InferenceWithFileContextParams(BaseModel):
 #     model_name: str = pydantic.Field(default=None, description="Name of the model")
 #     context_data_file: str = pydantic.Field(default=None, description="Path to context data file")
@@ -129,17 +137,15 @@ def _run_inference_process_with_ctx_text_file_and_collect_result(run_id: str, mo
         return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
 
 
-def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str, model_name: str,
+def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str,
+                                                                     model_name: str,
                                                                      context_json_data_file: str,
-                                                                     question_text: str, prompt_text: str,
+                                                                     question_text_file: str,
+                                                                     prompt_text_file: str,
                                                                      max_new_tokens: int,
                                                                      embedding_model: str) -> JSONResponse:
     tmp_questions_dir = os.path.join(str(Path.home()), 'temp-data', 'questions')
     os.makedirs(tmp_questions_dir, exist_ok=True)
-
-    tmp_question_file = os.path.join(tmp_questions_dir, f'{run_id}.txt')
-    with open(tmp_question_file, 'w') as f:
-        f.write(question_text)
 
     import llama3_playground
     module_path = llama3_playground.__file__.replace('__init__.py', '')
@@ -153,8 +159,8 @@ def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str
         '-r', run_id,
         '-t', str(max_new_tokens),
         '-e', embedding_model,
-        '-p', prompt_text,
-        '-q', tmp_question_file,
+        '-p', prompt_text_file,
+        '-q', question_text_file,
     ]
     out = ""
     err = ""
@@ -281,17 +287,29 @@ async def run_inference_sync_ctx_file_upload(
 @router.post('/async/with-ctx-ocr-json-file',
              summary="Run inference in sync mode with by uploading a context OCR JSON file",
              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
-async def run_inference_sync_ctx_file_upload(
-        inference_params: InferenceWithFileUploadContextParams = Depends(),
-        context_data_file: UploadFile = File(...)
+async def run_inference_async_ctx_json_file_upload(
+        inference_params: InferenceWithJSONFileUploadContextParams = Depends(),
+        context_json_data_file: UploadFile = File(...),
+        question_text_file: UploadFile = File(...),
+        prompt_text_file: UploadFile = File(...)
 ):
     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
     os.makedirs(uploads_dir, exist_ok=True)
-    uploaded_ctx_json_file = os.path.join(uploads_dir, context_data_file.filename)
     try:
-        contents = context_data_file.file.read()
+        uploaded_ctx_json_file = os.path.join(uploads_dir, context_json_data_file.filename)
+        contents = context_json_data_file.file.read()
         with open(uploaded_ctx_json_file, 'wb') as f:
             f.write(contents)
+
+        uploaded_question_text_file = os.path.join(uploads_dir, question_text_file.filename)
+        question_txt = question_text_file.file.read()
+        with open(uploaded_question_text_file, 'wb') as f:
+            f.write(question_txt)
+
+        uploaded_prompt_text_file = os.path.join(uploads_dir, prompt_text_file.filename)
+        prompt_txt = prompt_text_file.file.read()
+        with open(uploaded_prompt_text_file, 'wb') as f:
+            f.write(prompt_txt)
 
         inference_run_id = str(uuid.uuid4())
 
@@ -302,8 +320,8 @@ async def run_inference_sync_ctx_file_upload(
                 "run_id": inference_run_id,
                 "model_name": inference_params.model_name,
                 "context_json_data_file": uploaded_ctx_json_file,
-                "question_text": inference_params.question_text,
-                "prompt_text": inference_params.prompt_text,
+                "question_text_file": uploaded_question_text_file,
+                "prompt_text_file": uploaded_prompt_text_file,
                 "max_new_tokens": inference_params.max_new_tokens,
                 "embedding_model": inference_params.embedding_model
             }
@@ -316,7 +334,9 @@ async def run_inference_sync_ctx_file_upload(
     except Exception as e:
         return ResponseHandler.error(data="Error running inference", exception=e)
     finally:
-        context_data_file.file.close()
+        context_json_data_file.file.close()
+        question_text_file.file.close()
+        prompt_text_file.file.close()
 
 
 @router.get('/status/{run_id}', summary='Get status of inference',

@@ -261,8 +261,9 @@ async def get_ocr_yolo_run_details(run_id: str):
                         text_result = rf.read()
                     with open(ocr_result_file, 'r') as rf:
                         ocr_result = rf.read()
+                        ocr_result_dict = json.loads(ocr_result)
                     return ResponseHandler.success(
-                        data={"text_result": text_result, "ocr_result": ocr_result, 'run_id': run_id,
+                        data={"text_result": text_result, "ocr_result": ocr_result_dict, 'run_id': run_id,
                               'status': 'success'})
                 else:
                     return ResponseHandler.error(data='Result file/s not found!')

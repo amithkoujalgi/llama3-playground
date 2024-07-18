@@ -31,14 +31,21 @@ RUN rm -rf /app/requirements.txt /app/build_wheel.py /app/setup.py /app/dist /ap
 RUN mkdir -p /app/logs/
 RUN mkdir -p /app/data/
 
-ENV EASY_OCR_MODELS_DIR "/easyocr-models"
+ENV EASY_OCR_MODELS_DIR "/app/models/easyocr"
+
+#RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
+#    cd $EASY_OCR_MODELS_DIR &&  \
+#    wget -O craft_mlt_25k.zip https://github.com/JaidedAI/EasyOCR/releases/download/pre-v1.1.6/craft_mlt_25k.zip &&  \
+#    unzip craft_mlt_25k.zip &&  \
+#    rm craft_mlt_25k.zip &&  \
+#    wget -O english_g2.zip https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip &&  \
+#    unzip english_g2.zip &&  \
+#    rm english_g2.zip
 
 RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
     cd $EASY_OCR_MODELS_DIR &&  \
-    wget -O craft_mlt_25k.zip https://github.com/JaidedAI/EasyOCR/releases/download/pre-v1.1.6/craft_mlt_25k.zip &&  \
     unzip craft_mlt_25k.zip &&  \
     rm craft_mlt_25k.zip &&  \
-    wget -O english_g2.zip https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip &&  \
     unzip english_g2.zip &&  \
     rm english_g2.zip
 

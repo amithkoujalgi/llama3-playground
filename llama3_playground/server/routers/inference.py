@@ -141,7 +141,7 @@ def _run_inference_process_with_ctx_text_file_and_collect_result(run_id: str, mo
 def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str,
                                                                      model_name: str,
                                                                      context_json_data_file: str,
-                                                                     question_text_file: str,
+                                                                     question_file: str,
                                                                      prompt_text_file: str,
                                                                      max_new_tokens: int,
                                                                      embedding_model: str) -> JSONResponse:
@@ -161,7 +161,7 @@ def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str
         '-t', str(max_new_tokens),
         '-e', embedding_model,
         '-p', prompt_text_file,
-        '-q', question_text_file,
+        '-q', question_file,
     ]
     out = ""
     err = ""
@@ -292,7 +292,7 @@ async def inference_status():
 async def run_inference_async_ctx_json_file_upload(
         inference_params: InferenceWithJSONFileUploadContextParams = Depends(),
         context_json_data_file: UploadFile = File(...),
-        question_text_file: UploadFile = File(...),
+        question_file: UploadFile = File(...),
         prompt_text_file: UploadFile = File(...)
 ):
     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
@@ -303,9 +303,9 @@ async def run_inference_async_ctx_json_file_upload(
         with open(uploaded_ctx_json_file, 'wb') as f:
             f.write(contents)
 
-        uploaded_question_text_file = os.path.join(uploads_dir, question_text_file.filename)
-        question_txt = question_text_file.file.read()
-        with open(uploaded_question_text_file, 'wb') as f:
+        uploaded_question_file = os.path.join(uploads_dir, question_file.filename)
+        question_txt = question_file.file.read()
+        with open(uploaded_question_file, 'wb') as f:
             f.write(question_txt)
 
         uploaded_prompt_text_file = os.path.join(uploads_dir, prompt_text_file.filename)
@@ -322,7 +322,7 @@ async def run_inference_async_ctx_json_file_upload(
                 "run_id": inference_run_id,
                 "model_name": inference_params.model_name,
                 "context_json_data_file": uploaded_ctx_json_file,
-                "question_text_file": uploaded_question_text_file,
+                "question_file": uploaded_question_file,
                 "prompt_text_file": uploaded_prompt_text_file,
                 "max_new_tokens": inference_params.max_new_tokens,
                 "embedding_model": inference_params.embedding_model

@@ -57,10 +57,10 @@ class InferenceWithFileUploadContextParams(BaseModel):
 #     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
 
 
-def _run_inference_process_and_collect_result(run_id: str, model_name: str, context_data_file: str,
-                                              question_text: str, prompt_text: str,
-                                              max_new_tokens: int,
-                                              embedding_model: str) -> JSONResponse:
+def _run_inference_process_with_ctx_text_file_and_collect_result(run_id: str, model_name: str, context_data_file: str,
+                                                                 question_text: str, prompt_text: str,
+                                                                 max_new_tokens: int,
+                                                                 embedding_model: str) -> JSONResponse:
     tmp_questions_dir = os.path.join(str(Path.home()), 'temp-data', 'questions')
     os.makedirs(tmp_questions_dir, exist_ok=True)
 
@@ -77,6 +77,79 @@ def _run_inference_process_and_collect_result(run_id: str, model_name: str, cont
         sys.executable, module_path,
         '-m', model_name,
         '-d', context_data_file,
+        '-r', run_id,
+        '-t', str(max_new_tokens),
+        '-e', embedding_model,
+        '-p', prompt_text,
+        '-q', tmp_question_file,
+    ]
+    out = ""
+    err = ""
+    p = subprocess.Popen(cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    for line in p.stdout:
+        out = out + "\n" + line.decode("utf-8")
+    for line in p.stderr:
+        err = err + "\n" + line.decode("utf-8")
+    p.wait()
+    return_code = p.returncode
+
+    with open(f"{inference_dir}/process-out.log", 'w') as lf:
+        lf.write(out)
+        lf.write('\n\n')
+        lf.write(err)
+        lf.write('\n\n')
+        lf.write(f'Exit code: {return_code}')
+
+    if return_code == 0:
+        status_file = os.path.join(inference_dir, 'RUN-STATUS')
+        if os.path.exists(status_file):
+            with open(status_file, 'r') as f:
+                status = f.read()
+            if 'success' in status:
+                response_file = os.path.join(inference_dir, 'response.txt')
+                if os.path.exists(response_file):
+                    with open(response_file, 'r') as rf:
+                        response = rf.read()
+                        return ResponseHandler.success(
+                            data={"response": response, 'run_id': run_id, 'status': 'success',
+                                  'exit_code': return_code})
+                else:
+                    return ResponseHandler.error(data='Response file not found!')
+            else:
+                err_file = os.path.join(inference_dir, 'error.log')
+                if os.path.exists(err_file):
+                    with open(err_file, 'r') as rf:
+                        err = rf.read()
+                        return ResponseHandler.error(data=f'Inference failed! Reason: {err}')
+                else:
+                    return ResponseHandler.error(data=f'Error log file not found!')
+        else:
+            return ResponseHandler.error(data=f'Run status file not found!')
+    else:
+        return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
+
+
+def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str, model_name: str,
+                                                                     context_json_data_file: str,
+                                                                     question_text: str, prompt_text: str,
+                                                                     max_new_tokens: int,
+                                                                     embedding_model: str) -> JSONResponse:
+    tmp_questions_dir = os.path.join(str(Path.home()), 'temp-data', 'questions')
+    os.makedirs(tmp_questions_dir, exist_ok=True)
+
+    tmp_question_file = os.path.join(tmp_questions_dir, f'{run_id}.txt')
+    with open(tmp_question_file, 'w') as f:
+        f.write(question_text)
+
+    import llama3_playground
+    module_path = llama3_playground.__file__.replace('__init__.py', '')
+    module_path = os.path.join(module_path, 'core', 'infer_new.py')
+
+    inference_dir = f'{Config.inferences_dir}/{run_id}'
+    cmd_arr = [
+        sys.executable, module_path,
+        '-m', model_name,
+        '-d', context_json_data_file,
         '-r', run_id,
         '-t', str(max_new_tokens),
         '-e', embedding_model,
@@ -150,7 +223,7 @@ async def run_inference_sync_ctx_file_upload(
             f.write(contents)
 
         inference_run_id = str(uuid.uuid4())
-        return _run_inference_process_and_collect_result(
+        return _run_inference_process_with_ctx_text_file_and_collect_result(
             run_id=inference_run_id,
             model_name=inference_params.model_name,
             context_data_file=uploaded_ctx_file,
@@ -183,11 +256,52 @@ async def run_inference_sync_ctx_file_upload(
 
         thread = Thread(
             name=inference_run_id,
-            target=_run_inference_process_and_collect_result,
+            target=_run_inference_process_with_ctx_text_file_and_collect_result,
             kwargs={
                 "run_id": inference_run_id,
                 "model_name": inference_params.model_name,
                 "context_data_file": uploaded_ctx_file,
+                "question_text": inference_params.question_text,
+                "prompt_text": inference_params.prompt_text,
+                "max_new_tokens": inference_params.max_new_tokens,
+                "embedding_model": inference_params.embedding_model
+            }
+        )
+        thread.start()
+
+        return {
+            "run_id": inference_run_id
+        }
+    except Exception as e:
+        return ResponseHandler.error(data="Error running inference", exception=e)
+    finally:
+        context_data_file.file.close()
+
+
+@router.post('/async/with-ctx-ocr-json-file',
+             summary="Run inference in sync mode with by uploading a context OCR JSON file",
+             description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
+async def run_inference_sync_ctx_file_upload(
+        inference_params: InferenceWithFileUploadContextParams = Depends(),
+        context_data_file: UploadFile = File(...)
+):
+    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    uploaded_ctx_json_file = os.path.join(uploads_dir, context_data_file.filename)
+    try:
+        contents = context_data_file.file.read()
+        with open(uploaded_ctx_json_file, 'wb') as f:
+            f.write(contents)
+
+        inference_run_id = str(uuid.uuid4())
+
+        thread = Thread(
+            name=inference_run_id,
+            target=_run_inference_process_with_ctx_ocr_json_file_and_collect_result,
+            kwargs={
+                "run_id": inference_run_id,
+                "model_name": inference_params.model_name,
+                "context_json_data_file": uploaded_ctx_json_file,
                 "question_text": inference_params.question_text,
                 "prompt_text": inference_params.prompt_text,
                 "max_new_tokens": inference_params.max_new_tokens,
@@ -256,7 +370,7 @@ async def get_inference_run_details(run_id: str):
 #     with open(ctx_data_file, 'w') as f:
 #         f.write(inference_params.context_data)
 #
-#     return _run_inference_process_and_collect_result(
+#     return _run_inference_process_with_ctx_text_file_and_collect_result(
 #         run_id=inference_run_id,
 #         model_name=inference_params.model_name,
 #         context_data_file=ctx_data_file,
@@ -280,7 +394,7 @@ async def get_inference_run_details(run_id: str):
 #         if 'success' in status:
 #             text_result_file = os.path.join(ocr_run_dir, 'text-result.txt')
 #             if os.path.exists(text_result_file):
-#                 return _run_inference_process_and_collect_result(
+#                 return _run_inference_process_with_ctx_text_file_and_collect_result(
 #                     run_id=inference_run_id,
 #                     model_name=inference_params.model_name,
 #                     context_data_file=text_result_file,
@@ -299,7 +413,7 @@ async def get_inference_run_details(run_id: str):
 #              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
 # async def run_inference_sync_ctx_file_path(inference_params: InferenceWithFileContextParams):
 #     inference_run_id = str(uuid.uuid4())
-#     return _run_inference_process_and_collect_result(
+#     return _run_inference_process_with_ctx_text_file_and_collect_result(
 #         run_id=inference_run_id,
 #         model_name=inference_params.model_name,
 #         context_data_file=inference_params.context_data_file,

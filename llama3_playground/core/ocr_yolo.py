@@ -163,7 +163,9 @@ class YOLOv8OCR:
         aligned_text = ""
         paragraph_gaps = []
 
+        page_num = 0
         for img in images:
+            aligned_text = aligned_text + f"\n\n---PAGE {page_num}---\n\n"
             img_ = Image.open(img)
             img_ = np.array(img_)  # Convert PIL Image to numpy array for EasyOCR
             # input_to_ocr_file_name = f"{self._intermediate_results_path}/input_to_ocr.jpg"
@@ -198,6 +200,7 @@ class YOLOv8OCR:
                 aligned_text += text_line + "\n"
 
                 prev_bottom = line['content'][-1][0][2][1]  # Update bottom position from the last element of the line
+            page_num += 1
 
         with open(output_file, 'w') as f:
             f.write(aligned_text)

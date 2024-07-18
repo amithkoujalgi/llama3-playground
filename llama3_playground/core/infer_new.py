@@ -5,6 +5,7 @@ import json
 import os
 import sys
 
+import numpy as np
 # noinspection PyUnresolvedReferences
 import pysqlite3
 
@@ -48,14 +49,19 @@ def get_embedding_function(embed_model_Path: str):
 
 
 class CreateChromaDB:
-    CHUNK_SIZE = 1024
-    CHUNK_OVERLAP = 100
-    TOP_K = 5
+    # CHUNK_SIZE = 1024
+    # CHUNK_OVERLAP = 100
+    # TOP_K = 5
 
-    def __init__(self, db_path: str, embed_model_path: str, clear_db: bool = False):
+    def __init__(self, db_path: str, embed_model_path: str, chunk_size: int, chunk_overlap: int, top_k: int,
+                 clear_db: bool = False):
         self.chroma_path = f"{db_path}"
         self.clear_db = clear_db
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.top_k = top_k
         self.embedding_function = get_embedding_function(embed_model_path)
+        self.query_chunk_map = {}
 
     def populate_database(self, ocr_text: str, pdf_file_path: str):
         if self.clear_db:
@@ -74,8 +80,8 @@ class CreateChromaDB:
         for idx, page in enumerate(split_pages):
             doc = Document(page_content=page, metadata={"source": pdf_file_path, "page": idx})
             chunks.append(doc)
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=CreateChromaDB.CHUNK_SIZE,
-                                                       chunk_overlap=CreateChromaDB.CHUNK_OVERLAP)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=self.chunk_size,
+                                                       chunk_overlap=self.chunk_overlap)
         chunks = text_splitter.split_documents(chunks)
         return chunks
 
@@ -102,6 +108,7 @@ class CreateChromaDB:
             db.persist()
         else:
             print("No new documents to add")
+        print("\n")
 
     def calculate_chunk_ids(self, chunks) -> List[Document]:
         last_page_id = None
@@ -128,23 +135,86 @@ class CreateChromaDB:
         if os.path.exists(self.chroma_path):
             shutil.rmtree(self.chroma_path)
 
-    def retrieve_relevant_chunks(self, query_text: str) -> str:
+    def retrieve_relevant_chunks(self, query_text: dict) -> str:
         db = Chroma(persist_directory=self.chroma_path, embedding_function=self.embedding_function)
-        results = db.similarity_search_with_score(query_text, k=CreateChromaDB.TOP_K)
-        context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-        return context_text
+        # query_text = extract_json_from_string(query_text)
+        for field_query, field_name in query_text.items():
+            results = db.similarity_search_with_score(field_query, k=self.top_k)
+            # context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
+            # print(f"Retrieved relevant context chunks: \n{context_text}\n")
+            sources = [doc.metadata.get('id', None) for doc, _score in results]
+            print(f"{field_query}:\n{sources}\n")
+            context_text = [doc.page_content for doc, _score in results]
+            self.query_chunk_map[field_name] = context_text
+        query_chunk_combined = self.combine_keys_if_match()
+        query_chunk_combined = self.format_query(query_chunk_combined)
+        return query_chunk_combined
+
+    def format_query(self, query_dict):
+        template = "Extract fields:  {query}. provide the result in a json format."
+        return {template.replace('{query}', query): "\n\n---\n\n".join(context) for query, context in
+                query_dict.items()}
+
+    def combine_keys_if_match(self, threshold=0.6):
+        combined_data = {}
+        keys = list(self.query_chunk_map.keys())
+        visited = set()
+
+        for i, key1 in enumerate(keys):
+            if key1 in visited:
+                continue
+            combined_keys = [key1]
+            combined_values = set(self.query_chunk_map[key1])
+
+            for key2 in keys[i + 1:]:
+                if key2 in visited:
+                    continue
+                values1 = set(self.query_chunk_map[key1])
+                values2 = set(self.query_chunk_map[key2])
+
+                common_values = values1.intersection(values2)
+                if len(common_values) >= np.floor(threshold * min(len(values1), len(values2))):
+                    combined_keys.append(key2)
+                    combined_values.update(values2)
+                    visited.add(key2)
+
+            combined_key = ', '.join(combined_keys)
+            print(f"combined keys: {combined_key}")
+            combined_data[combined_key] = list(combined_values)
+            visited.add(key1)
+        print("\n")
+        return combined_data
+
+
+def extract_json_from_string(input_str, query_text):
+    # json_pattern = re.compile(r'\{.*?\}', re.DOTALL)
+    json_pattern = re.compile(r'\{.*\}', re.DOTALL)
+    json_match = json_pattern.search(input_str)
+
+    if json_match:
+        json_str = json_match.group()
+        return json.loads(json_str)
+    else:
+        print("No JSON object found in the input string")
+        query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
+            0].split(", ")
+        return {field: None for field in query_fields}
 
 
 def run_inference(model_path: str,
                   embed_model_path: str,
-                  question_text: str,
+                  question_text: dict,
                   prompt_text: str,
                   prompt_text_file: str,
                   ctx_json_file: str,
                   resp_file: str,
                   rag_db_path: str,
                   max_new_tokens: int,
-                  chunks_text_file: str):
+                  chunks_text_file: str,
+                  chunk_size: int,
+                  chunk_overlap: int,
+                  top_k: int,
+                  clear_db: bool):
     max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
@@ -160,9 +230,9 @@ def run_inference(model_path: str,
     prompt = """
     You are a smart, logical and helpful assistant.
     [PROMPT_PLACEHOLDER]
-    
+
     Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
-    
+
     ### Context:
     {}
 
@@ -180,46 +250,61 @@ def run_inference(model_path: str,
     print(f'Wrote prompt text to: {prompt_text_file}')
 
     with open(ctx_json_file, 'r') as f:
-        json_text = f.read()
-        ctx_dict = json.loads(json_text)
-
+        ctx_dict = json.loads(f.read())
         text_data = ctx_dict['text_result']
         ocr_data = ctx_dict['ocr_result']
 
-    chroma_db = CreateChromaDB(db_path=rag_db_path, embed_model_path=embed_model_path, clear_db=True)
+    chroma_db = CreateChromaDB(db_path=rag_db_path, embed_model_path=embed_model_path, clear_db=clear_db,
+                               chunk_size=chunk_size, chunk_overlap=chunk_overlap, top_k=top_k)
     chroma_db.populate_database(ocr_text=text_data, pdf_file_path=ctx_json_file)
-    context_text = chroma_db.retrieve_relevant_chunks(query_text=question_text)
+    query_chunk_map = chroma_db.retrieve_relevant_chunks(query_text=question_text)
 
     with open(chunks_text_file, 'w') as f:
-        f.write(context_text)
+        f.write(json.dumps(query_chunk_map))
     print(f'Wrote the contextual chunks data fetched from vector database into file: {chunks_text_file}')
 
+    final_response = {}
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
-    inputs = tokenizer(
-        [
-            prompt.format(
-                context_text,
-                question_text,
-                "",  # output - leave this blank for generation!
-            )
-        ], return_tensors="pt").to("cuda")
+    for query_text, context_text in query_chunk_map.items():
+        inputs = tokenizer(
+            [
+                prompt.format(
+                    context_text,
+                    query_text,
+                    "",  # output - leave this blank for generation!
+                )
+            ], return_tensors="pt").to("cuda")
 
-    # from transformers import TextStreamer
-    # text_streamer = TextStreamer(tokenizer)
-    # outputs = model.generate(**inputs, streamer=text_streamer, max_new_tokens=128, use_cache=True)
-    # response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
+        # from transformers import TextStreamer
+        # text_streamer = TextStreamer(tokenizer)
+        # outputs = model.generate(**inputs, streamer=text_streamer, max_new_tokens=128, use_cache=True)
+        # response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
 
-    outputs = model.generate(**inputs, max_new_tokens=max_new_tokens, use_cache=True)
-    response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
-    response = response.strip()
+        outputs = model.generate(**inputs, max_new_tokens=max_new_tokens, use_cache=True)
+        response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
+        response = response.strip()
+        # print(response)
+        response = extract_json_from_string(response, query_text)
+        print("\n")
+        print("---------")
+        print("Question:")
+        print(query_text)
+        print("---------")
+        print("Response:")
+        print("---------")
+        print(response)
+        print("---------")
+        final_response.update(response)
+
     print("\n")
     print("---------")
-    print("Response:")
+    print("Final Response:")
     print("---------")
-    print(response)
+    print(final_response)
     print("---------")
+    final_response = json.dumps(final_response)
     with open(resp_file, 'w') as f:
-        f.write(response)
+        f.write(final_response)
     print(f'Wrote the response to {resp_file}')
 
 
@@ -292,6 +377,42 @@ if __name__ == '__main__':
         required=False,
         default=False
     )
+    parser.add_argument(
+        '-cs',
+        '--chunk-size',
+        type=int,
+        dest='chunk_size',
+        help=f'maximum chunk size for the text splitter',
+        required=False,
+        default=1024
+    )
+    parser.add_argument(
+        '-co',
+        '--chunk-overlap',
+        type=int,
+        dest='chunk_overlap',
+        help=f'maximum chunk overlap size for the text splitter',
+        required=False,
+        default=100
+    )
+    parser.add_argument(
+        '-k',
+        '--top-k-chunks',
+        type=int,
+        dest='top_k',
+        help=f'top k chunks to be fetched from db based on the query',
+        required=False,
+        default=5
+    )
+    parser.add_argument(
+        '-c',
+        '--clear-db',
+        type=bool,
+        dest='clear_db',
+        help=f'wherther to clear vector db or not',
+        required=False,
+        default=True
+    )
 
     required_args = parser.add_argument_group('required arguments')
     required_args.add_argument(
@@ -322,6 +443,10 @@ if __name__ == '__main__':
     prompt_text = args.prompt_text
     max_new_tokens = args.max_new_tokens
     prefer_lora_adapter_model = args.prefer_lora_adapter_model
+    chunk_size = args.chunk_size
+    chunk_overlap = args.chunk_overlap
+    top_k = args.top_k
+    clear_db = args.clear_db
 
     if model_name is None:
         model_name = ModelManager.get_latest_model(lora_adapters_only=False)
@@ -342,8 +467,8 @@ if __name__ == '__main__':
     inference_dir = f'{Config.inferences_dir}/{runId}'
     os.makedirs(inference_dir, exist_ok=True)
 
-    inference_run_question_file = f'{inference_dir}/question.txt'
-    ctx_data_file = f'{inference_dir}/context-data.txt'
+    inference_run_question_file = f'{inference_dir}/question.json'
+    ctx_data_file = f'{inference_dir}/context-data.json'
     resp_file = f'{inference_dir}/response.txt'
     prompt_text_file = f'{inference_dir}/prompt.txt'
     chunks_text_file = f'{inference_dir}/chunks-picked.txt'
@@ -357,7 +482,7 @@ if __name__ == '__main__':
     print(f'Wrote question text to: {inference_run_question_file}')
 
     with open(inference_run_question_file, 'r') as f:
-        question_text = f.read()
+        question_text = json.loads(f.read())
     try:
         run_inference(
             model_path=model_path,
@@ -369,7 +494,11 @@ if __name__ == '__main__':
             max_new_tokens=max_new_tokens,
             chunks_text_file=chunks_text_file,
             embed_model_path=embed_model_path,
-            rag_db_path=rag_db_path
+            rag_db_path=rag_db_path,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            top_k=top_k,
+            clear_db=clear_db
         )
 
         with open(os.path.join(inference_dir, 'RUN-STATUS'), 'w') as f:

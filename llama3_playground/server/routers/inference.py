@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import subprocess
@@ -160,7 +161,7 @@ def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str
         '-r', run_id,
         '-t', str(max_new_tokens),
         '-e', embedding_model,
-        '-p', prompt_text_file,
+        # '-p', prompt_text_file,
         '-q', question_file,
     ]
     out = ""
@@ -351,12 +352,64 @@ async def get_inference_run_details(run_id: str):
             with open(status_file, 'r') as f:
                 status = f.read()
             if 'success' in status:
+                result_json_file = os.path.join(inference_run_dir, 'result.json')
+                if os.path.exists(result_json_file):
+                    with open(result_json_file, 'r') as rf:
+                        result_json = rf.read()
+                else:
+                    # Create dummy entry temporarily
+                    result_json = {
+                        "result": [
+                            {
+                                "pageNo": 3,
+                                "Fields": [
+                                    {
+                                        "key": "EMPLOYER_PRIMARY_ACCNO",
+                                        "validation_rules": [
+                                            "INTEGER_VALIDATION"
+                                        ],
+                                        "field_type": "INTEGER",
+                                        "valueSet": [
+                                            {
+                                                "value": "110022",
+                                                "coordinates": [
+                                                    4.9997,
+                                                    1.2676,
+                                                    5.4008,
+                                                    1.3845
+                                                ],
+                                                "is_validated": False,
+                                                "source": "AzureModel"
+                                            }
+                                        ],
+                                        "validation_status": "VALID_VALUE",
+                                        "confidence_score": 95.3,
+                                        "is_mandatory": True,
+                                        "is_user_edited": False,
+                                        "validationResults": [
+                                            {
+                                                "status": "VALID_VALUE",
+                                                "reason": "Valid Number",
+                                                "validation_rule_name": "INTEGER_VALIDATION",
+                                                "validation_level": 1
+                                            }
+                                        ]
+                                    }
+                                ],
+                                "document_type": ""
+                            }
+                        ]
+                    }
+                    with open(result_json_file, 'w') as rf:
+                        rf.write(json.dumps(result_json, indent=4))
+
                 response_file = os.path.join(inference_run_dir, 'response.txt')
                 if os.path.exists(response_file):
                     with open(response_file, 'r') as rf:
                         response = rf.read()
                         return ResponseHandler.success(
-                            data={"response": response, 'run_id': run_id, 'status': 'success'})
+                            data={"llm_response": response, "result": result_json, 'run_id': run_id,
+                                  'status': 'success'})
                 else:
                     return ResponseHandler.error(data='Response file not found!')
             else:

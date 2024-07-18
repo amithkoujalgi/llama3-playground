@@ -5,6 +5,7 @@ import subprocess
 import sys
 import uuid
 from pathlib import Path
+from threading import Thread
 
 from fastapi import APIRouter, UploadFile, File
 from starlette.responses import JSONResponse
@@ -209,3 +210,68 @@ async def run_ocr_sync_pdf_yolo(file: UploadFile = File(...)):
         return ResponseHandler.error(data="Error running OCR", exception=e)
     finally:
         file.file.close()
+
+
+@router.post('/async/pdf',
+             summary="Run OCR in async mode on a PDF file. Uses YOLOv8 model from [ultralytics](https://github.com/ultralytics)",
+             description="API to run OCR in async mode on a PDF file")
+async def run_ocr_async_pdf_yolo(file: UploadFile = File(...)):
+    ocr_run_id = str(uuid.uuid4())
+    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    upload_file = os.path.join(uploads_dir, file.filename)
+    try:
+        contents = file.file.read()
+        with open(upload_file, 'wb') as f:
+            f.write(contents)
+
+        thread = Thread(
+            name=ocr_run_id,
+            target=_run_ocr_process_and_collect_result_yolo,
+            kwargs={
+                "run_id": ocr_run_id,
+                "pdf_file": upload_file
+            }
+        )
+        thread.start()
+
+        return {
+            "run_id": ocr_run_id
+        }
+    except Exception as e:
+        return ResponseHandler.error(data="Error running OCR", exception=e)
+    finally:
+        file.file.close()
+
+
+@router.get('/async/pdf/status/{run_id}', summary='Get status of OCR run',
+            description='API to get details of OCR run.')
+async def get_ocr_yolo_run_details(run_id: str):
+    ocr_run_dir = f'{Config.ocr_runs_dir}/{run_id}'
+    if os.path.exists(ocr_run_dir):
+        status_file = os.path.join(ocr_run_dir, 'RUN-STATUS')
+        if os.path.exists(status_file):
+            with open(status_file, 'r') as f:
+                status = f.read()
+            if 'success' in status:
+                response_file = os.path.join(ocr_run_dir, 'text-result.txt')
+                if os.path.exists(response_file):
+                    with open(response_file, 'r') as rf:
+                        response = rf.read()
+                        return ResponseHandler.success(
+                            data={"response": response, 'run_id': run_id, 'status': 'success'})
+                else:
+                    return ResponseHandler.error(data='Result file not found!')
+            else:
+                err_file = os.path.join(ocr_run_dir, 'error.log')
+                if os.path.exists(err_file):
+                    with open(err_file, 'r') as rf:
+                        err = rf.read()
+                        return ResponseHandler.error(data=f'Inference failed! Reason: {err}')
+                else:
+                    return ResponseHandler.error(data=f'Error log file not found!')
+        else:
+            return ResponseHandler.success(
+                data={"response": None, 'run_id': run_id, 'status': 'running'})
+    else:
+        return ResponseHandler.error(data=f"Couldn't get inference run details for run ID {run_id}")

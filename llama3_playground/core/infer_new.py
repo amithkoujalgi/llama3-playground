@@ -74,7 +74,8 @@ class CreateChromaDB:
             print("Vector database already created.")
 
     def generate_chunks_from_ocr_text(self, ocr_text: str, pdf_file_path: str) -> List[Document]:
-        split_pages = re.split(r'---PAGE \d+---', ocr_text)
+        # split_pages = re.split(r'---PAGE \d+---', ocr_text)
+        split_pages = re.split(r'\n\n---PAGE-SEPARATOR---\n\n', ocr_text)
         split_pages = [page.strip() for page in split_pages if page.strip()]
         chunks = []
         for idx, page in enumerate(split_pages):
@@ -207,10 +208,11 @@ def extract_json_from_string(input_str, query_text):
 def run_inference(model_path: str,
                   embed_model_path: str,
                   question_text: dict,
-                  prompt_text: str,
+                  # prompt_text: str,
                   prompt_text_file: str,
                   ctx_json_file: str,
                   resp_file: str,
+                  result_file: str,
                   rag_db_path: str,
                   max_new_tokens: int,
                   chunks_text_file: str,
@@ -230,27 +232,30 @@ def run_inference(model_path: str,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
-    prompt = """
-    You are a smart, logical and helpful assistant.
-    [PROMPT_PLACEHOLDER]
+    # prompt = """
+    # You are a smart, logical and helpful assistant.
+    # [PROMPT_PLACEHOLDER]
 
-    Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
+    # Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
 
-    ### Context:
-    {}
+    # ### Context:
+    # {}
 
-    ### Question:
-    {}
+    # ### Question:
+    # {}
 
-    ### Response:
-    {}"""
+    # ### Response:
+    # {}"""
 
-    if prompt_text is not None and type(prompt_text) == str:
-        prompt = prompt.replace('[PROMPT_PLACEHOLDER]', prompt_text)
+    # if prompt_text is not None and type(prompt_text) == str:
+    #     prompt = prompt.replace('[PROMPT_PLACEHOLDER]', prompt_text)
 
-    with open(prompt_text_file, 'w') as f:
-        f.write(prompt)
-    print(f'Wrote prompt text to: {prompt_text_file}')
+    # with open(prompt_text_file, 'w') as f:
+    #     f.write(prompt)
+    # print(f'Wrote prompt text to: {prompt_text_file}')
+
+    with open(prompt_text_file, 'r') as f:
+        prompt = f.read()
 
     with open(ctx_json_file, 'r') as f:
         ctx_dict = json.loads(f.read())
@@ -266,7 +271,8 @@ def run_inference(model_path: str,
         f.write(json.dumps(query_chunk_map))
     print(f'Wrote the contextual chunks data fetched from vector database into file: {chunks_text_file}')
 
-    final_response = {}
+    final_response = ""
+    final_result = {}
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
     for query_text, context_text in query_chunk_map.items():
         inputs = tokenizer(
@@ -286,6 +292,7 @@ def run_inference(model_path: str,
         outputs = model.generate(**inputs, max_new_tokens=max_new_tokens, use_cache=True)
         response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
         response = response.strip()
+        final_response = final_response + "---------\nQuestion:\n---------\n" + query_text + "\n---------\nResponse:\n---------\n" + response + "\n---------\n" + "\n\n\n\n----Separator----\n\n\n\n"
         # print(response)
         response = extract_json_from_string(response, query_text)
         print("\n")
@@ -297,18 +304,52 @@ def run_inference(model_path: str,
         print("---------")
         print(response)
         print("---------")
-        final_response.update(response)
+        final_result.update(response)
 
     print("\n")
     print("---------")
-    print("Final Response:")
+    print("Final Result:")
     print("---------")
-    print(final_response)
+    print(final_result)
     print("---------")
-    final_response = json.dumps(final_response)
+
+    final_result = format_result_json(final_result)
+
+    print("\n")
+    print("---------")
+    print("Final Result:")
+    print("---------")
+    print(final_result)
+    print("---------")
+
     with open(resp_file, 'w') as f:
         f.write(final_response)
     print(f'Wrote the response to {resp_file}')
+
+    final_result = json.dumps(final_result)
+    with open(result_file, 'w') as f:
+        f.write(final_result)
+    print(f'Wrote the response to {result_file}')
+
+
+def format_result_json(result_json):
+    final_result_json = {"result": []}
+    page_res_json = {'pageNo': 0, 'Fields': []}
+    for field, value in result_json.items():
+        field_res_json = {}
+        field_res_json['key'] = field
+        field_res_json['validation_rules'] = []
+        field_res_json['field_type'] = "TEXT"
+        field_res_json['valueSet'] = [
+            {"value": value, "coordinates": [], "is_validated": False, "source": "Llama3-RAG"}]
+        field_res_json['validation_status'] = "VALID_VALUE"
+        field_res_json['confidence_score'] = 100
+        field_res_json['is_mandatory'] = False
+        field_res_json['is_user_edited'] = False
+        field_res_json['validationResults'] = []
+        page_res_json['Fields'].append(field_res_json)
+    final_result_json["result"].append(page_res_json)
+    return final_result_json
 
 
 def print_cli_args(cli_args: argparse.Namespace):
@@ -337,12 +378,12 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-p',
-        '--prompt-text',
+        '--prompt-text-file-path',
         type=str,
-        dest='prompt_text',
-        help='Custom prompt to be set to the LLM. Example: "Always respond in a JSON format"',
+        dest='prompt_text_file_path',
+        help='Path to the .txt data file to use as prompt for the model.',
         required=False,
-        default=""
+        default=None
     )
     parser.add_argument(
         '-t',
@@ -443,7 +484,7 @@ if __name__ == '__main__':
     embedding_model_name = args.embedding_model_name
     context_json_data_file_path = args.context_json_data_file_path
     question_file_path = args.question_file_path
-    prompt_text = args.prompt_text
+    prompt_text_file_path = args.prompt_text_file_path
     max_new_tokens = args.max_new_tokens
     prefer_lora_adapter_model = args.prefer_lora_adapter_model
     chunk_size = args.chunk_size
@@ -473,12 +514,34 @@ if __name__ == '__main__':
     inference_run_question_file = f'{inference_dir}/question.json'
     ctx_data_file = f'{inference_dir}/context-data.json'
     resp_file = f'{inference_dir}/response.txt'
+    result_file = f'{inference_dir}/result.json'
     prompt_text_file = f'{inference_dir}/prompt.txt'
     chunks_text_file = f'{inference_dir}/chunks-picked.txt'
     rag_db_path = f'{inference_dir}/db'
 
     model_path = f'{Config.models_dir}/{model_name}'
     embed_model_path = embedding_model_name
+
+    if prompt_text_file_path is None:
+        prompt = """
+        You are a smart, logical and helpful assistant. Use the given context and extract the required fields from it and provide the result in a json format. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. If you cannot answer the question from the given documents, please dont answer.
+
+    Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
+
+    ### Context:
+    {}
+
+    ### Question:
+    {}
+
+    ### Response:
+    {}"""
+        with open(prompt_text_file, 'w') as f:
+            f.write(prompt)
+        print(f'Wrote prompt text to: {prompt_text_file}')
+    else:
+        shutil.copyfile(prompt_text_file_path, prompt_text_file)
+        print(f'Wrote prompt text to: {prompt_text_file}')
 
     shutil.copyfile(context_json_data_file_path, ctx_data_file)
     shutil.copyfile(question_file_path, inference_run_question_file)
@@ -490,9 +553,10 @@ if __name__ == '__main__':
         run_inference(
             model_path=model_path,
             question_text=question_text,
-            prompt_text=prompt_text,
+            # prompt_text=prompt_text,
             ctx_json_file=context_json_data_file_path,
             resp_file=resp_file,
+            result_file=result_file,
             prompt_text_file=prompt_text_file,
             max_new_tokens=max_new_tokens,
             chunks_text_file=chunks_text_file,

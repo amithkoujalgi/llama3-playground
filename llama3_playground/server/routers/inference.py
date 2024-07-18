@@ -337,7 +337,7 @@ async def run_inference_async_ctx_json_file_upload(
         return ResponseHandler.error(data="Error running inference", exception=e)
     finally:
         context_json_data_file.file.close()
-        question_text_file.file.close()
+        question_file.file.close()
         prompt_text_file.file.close()
 
 

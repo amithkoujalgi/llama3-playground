@@ -1,11 +1,12 @@
 import subprocess
 import traceback
+from http import HTTPStatus
+from typing import Any
 
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
-from http import HTTPStatus
 
-from typing import Any
+PARALLEL_RUNS_ERROR = "Cannot execute this operation because there are other operations running at the moment. Parallel operations aren't supported! Please try executing the operation after some time. You can also monitor the status of the operations using the /status API."
 
 
 def is_any_process_running() -> bool:
@@ -32,7 +33,7 @@ def is_ocr_process_running() -> bool:
 
 def is_infer_process_running() -> bool:
     result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE, text=True)
-    if 'infer.py' in result.stdout:
+    if 'infer_new.py' in result.stdout:
         return True
     else:
         return False

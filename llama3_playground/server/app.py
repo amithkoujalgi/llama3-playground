@@ -7,6 +7,7 @@ from fastapi.openapi.utils import get_openapi
 from llama3_playground.server.routers.inference import router as inference_router
 from llama3_playground.server.routers.models import router as models_router
 from llama3_playground.server.routers.ocr_extraction import router as ocr_extraction_router
+from llama3_playground.server.routers.operations import router as operations_router
 from llama3_playground.server.routers.training import router as training_router
 
 app_title = 'Llama3 Playground'
@@ -74,6 +75,12 @@ app.include_router(
     models_router,
     prefix="/api/models",
     tags=["models"],
+)
+
+app.include_router(
+    operations_router,
+    prefix="/api/operations",
+    tags=["operations"],
 )
 
 app.add_middleware(

@@ -14,8 +14,7 @@ from starlette.responses import JSONResponse
 
 from llama3_playground.core.config import Config
 from llama3_playground.core.utils import ModelManager
-from llama3_playground.server.routers.utils import ResponseHandler
-from llama3_playground.server.routers.utils import is_infer_process_running
+from llama3_playground.server.routers.utils import ResponseHandler, is_any_process_running, PARALLEL_RUNS_ERROR
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -67,77 +66,77 @@ class InferenceWithJSONFileUploadContextParams(BaseModel):
 #     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
 
 
-def _run_inference_process_with_ctx_text_file_and_collect_result(run_id: str, model_name: str, context_data_file: str,
-                                                                 question_text: str, prompt_text: str,
-                                                                 max_new_tokens: int,
-                                                                 embedding_model: str) -> JSONResponse:
-    tmp_questions_dir = os.path.join(str(Path.home()), 'temp-data', 'questions')
-    os.makedirs(tmp_questions_dir, exist_ok=True)
-
-    tmp_question_file = os.path.join(tmp_questions_dir, f'{run_id}.txt')
-    with open(tmp_question_file, 'w') as f:
-        f.write(question_text)
-
-    import llama3_playground
-    module_path = llama3_playground.__file__.replace('__init__.py', '')
-    module_path = os.path.join(module_path, 'core', 'infer_rag.py')
-
-    inference_dir = f'{Config.inferences_dir}/{run_id}'
-    cmd_arr = [
-        sys.executable, module_path,
-        '-m', model_name,
-        '-d', context_data_file,
-        '-r', run_id,
-        '-t', str(max_new_tokens),
-        '-e', embedding_model,
-        '-p', prompt_text,
-        '-q', tmp_question_file,
-    ]
-    out = ""
-    err = ""
-    p = subprocess.Popen(cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    for line in p.stdout:
-        out = out + "\n" + line.decode("utf-8")
-    for line in p.stderr:
-        err = err + "\n" + line.decode("utf-8")
-    p.wait()
-    return_code = p.returncode
-
-    with open(f"{inference_dir}/process-out.log", 'w') as lf:
-        lf.write(out)
-        lf.write('\n\n')
-        lf.write(err)
-        lf.write('\n\n')
-        lf.write(f'Exit code: {return_code}')
-
-    if return_code == 0:
-        status_file = os.path.join(inference_dir, 'RUN-STATUS')
-        if os.path.exists(status_file):
-            with open(status_file, 'r') as f:
-                status = f.read()
-            if 'success' in status:
-                response_file = os.path.join(inference_dir, 'response.txt')
-                if os.path.exists(response_file):
-                    with open(response_file, 'r') as rf:
-                        response = rf.read()
-                        return ResponseHandler.success(
-                            data={"response": response, 'run_id': run_id, 'status': 'success',
-                                  'exit_code': return_code})
-                else:
-                    return ResponseHandler.error(data='Response file not found!')
-            else:
-                err_file = os.path.join(inference_dir, 'error.log')
-                if os.path.exists(err_file):
-                    with open(err_file, 'r') as rf:
-                        err = rf.read()
-                        return ResponseHandler.error(data=f'Inference failed! Reason: {err}')
-                else:
-                    return ResponseHandler.error(data=f'Error log file not found!')
-        else:
-            return ResponseHandler.error(data=f'Run status file not found!')
-    else:
-        return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
-
+# def _run_inference_process_with_ctx_text_file_and_collect_result(run_id: str, model_name: str, context_data_file: str,
+#                                                                  question_text: str, prompt_text: str,
+#                                                                  max_new_tokens: int,
+#                                                                  embedding_model: str) -> JSONResponse:
+#     tmp_questions_dir = os.path.join(str(Path.home()), 'temp-data', 'questions')
+#     os.makedirs(tmp_questions_dir, exist_ok=True)
+#
+#     tmp_question_file = os.path.join(tmp_questions_dir, f'{run_id}.txt')
+#     with open(tmp_question_file, 'w') as f:
+#         f.write(question_text)
+#
+#     import llama3_playground
+#     module_path = llama3_playground.__file__.replace('__init__.py', '')
+#     module_path = os.path.join(module_path, 'core', 'infer_rag.py')
+#
+#     inference_dir = f'{Config.inferences_dir}/{run_id}'
+#     cmd_arr = [
+#         sys.executable, module_path,
+#         '-m', model_name,
+#         '-d', context_data_file,
+#         '-r', run_id,
+#         '-t', str(max_new_tokens),
+#         '-e', embedding_model,
+#         '-p', prompt_text,
+#         '-q', tmp_question_file,
+#     ]
+#     out = ""
+#     err = ""
+#     p = subprocess.Popen(cmd_arr, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#     for line in p.stdout:
+#         out = out + "\n" + line.decode("utf-8")
+#     for line in p.stderr:
+#         err = err + "\n" + line.decode("utf-8")
+#     p.wait()
+#     return_code = p.returncode
+#
+#     with open(f"{inference_dir}/process-out.log", 'w') as lf:
+#         lf.write(out)
+#         lf.write('\n\n')
+#         lf.write(err)
+#         lf.write('\n\n')
+#         lf.write(f'Exit code: {return_code}')
+#
+#     if return_code == 0:
+#         status_file = os.path.join(inference_dir, 'RUN-STATUS')
+#         if os.path.exists(status_file):
+#             with open(status_file, 'r') as f:
+#                 status = f.read()
+#             if 'success' in status:
+#                 response_file = os.path.join(inference_dir, 'response.txt')
+#                 if os.path.exists(response_file):
+#                     with open(response_file, 'r') as rf:
+#                         response = rf.read()
+#                         return ResponseHandler.success(
+#                             data={"response": response, 'run_id': run_id, 'status': 'success',
+#                                   'exit_code': return_code})
+#                 else:
+#                     return ResponseHandler.error(data='Response file not found!')
+#             else:
+#                 err_file = os.path.join(inference_dir, 'error.log')
+#                 if os.path.exists(err_file):
+#                     with open(err_file, 'r') as rf:
+#                         err = rf.read()
+#                         return ResponseHandler.error(data=f'Inference failed! Reason: {err}')
+#                 else:
+#                     return ResponseHandler.error(data=f'Error log file not found!')
+#         else:
+#             return ResponseHandler.error(data=f'Run status file not found!')
+#     else:
+#         return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
+#
 
 def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str,
                                                                      model_name: str,
@@ -210,11 +209,11 @@ def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str
         return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
 
 
-@router.get('/status', summary='Check if there are any inference processes running',
-            description='API to get status of any other inference process. Tells you if the inference process is running or not.')
-async def inference_status():
-    return ResponseHandler.success(data={"running": is_infer_process_running()})
-
+# @router.get('/status', summary='Check if there are any inference processes running',
+#             description='API to get status of any other inference process. Tells you if the inference process is running or not.')
+# async def inference_status():
+#     return ResponseHandler.success(data={"running": is_infer_process_running()})
+#
 
 #
 # @router.post('/sync/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
@@ -296,6 +295,8 @@ async def run_inference_async_ctx_json_file_upload(
         question_file: UploadFile = File(...),
         prompt_text_file: UploadFile = File(...)
 ):
+    if is_any_process_running():
+        return ResponseHandler.error(data=PARALLEL_RUNS_ERROR)
     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
     os.makedirs(uploads_dir, exist_ok=True)
     try:

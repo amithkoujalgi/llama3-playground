@@ -2,19 +2,16 @@ import logging
 
 from fastapi import APIRouter
 
-from llama3_playground.server.routers.utils import ResponseHandler
-from llama3_playground.server.routers.utils import is_training_process_running
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 # Example usage
-@router.get('/status', summary='Get status of training',
-            description='API to get status of training. Tells you if the training process is ongoing or not.')
-async def training_status():
-    return ResponseHandler.success(data={"running": is_training_process_running()})
+# @router.get('/status', summary='Get status of training',
+#             description='API to get status of training. Tells you if the training process is ongoing or not.')
+# async def training_status():
+#     return ResponseHandler.success(data={"running": is_training_process_running()})
 
 # @router.get('/model-stats', summary="Get all trained models and their stats",
 #             description="API to get all trained models and their stats")

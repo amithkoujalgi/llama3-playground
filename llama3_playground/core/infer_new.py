@@ -191,11 +191,14 @@ def extract_json_from_string(input_str, query_text):
     json_pattern = re.compile(r'\{.*\}', re.DOTALL)
     json_match = json_pattern.search(input_str)
 
-    if json_match:
-        json_str = json_match.group()
-        return json.loads(json_str)
-    else:
-        print("No JSON object found in the input string")
+    try:
+        if json_match:
+            json_str = json_match.group()
+            return json.loads(json_str)
+        else:
+            raise ValueError("No JSON object found in the input string")
+    except Exception as e:
+        print(f"Error: {str(e)}")
         query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
             0].split(", ")
         return {field: None for field in query_fields}

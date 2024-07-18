@@ -3,6 +3,8 @@ import os
 import shutil
 
 import ruamel
+# noinspection PyUnresolvedReferences
+from ruamel import yaml
 from ultralytics import YOLO
 
 os.environ['WANDB_MODE'] = 'disabled'

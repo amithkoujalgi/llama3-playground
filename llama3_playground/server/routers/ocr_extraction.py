@@ -212,7 +212,7 @@ async def ocr_status():
 #         file.file.close()
 
 
-@router.post('/async/pdf',
+@router.post('/async/run',
              summary="Run OCR in async mode on a PDF file. Uses YOLOv8 model from ultralytics - https://github.com/ultralytics",
              description="API to run OCR in async mode on a PDF file")
 async def run_ocr_async_pdf_yolo(file: UploadFile = File(...)):
@@ -244,7 +244,7 @@ async def run_ocr_async_pdf_yolo(file: UploadFile = File(...)):
         file.file.close()
 
 
-@router.get('/async/pdf/status/{run_id}', summary='Get status of OCR run',
+@router.get('/async/run/{run_id}', summary='Get status of OCR run',
             description='API to get details of OCR run.')
 async def get_ocr_yolo_run_details(run_id: str):
     ocr_run_dir = f'{Config.ocr_runs_dir}/{run_id}'

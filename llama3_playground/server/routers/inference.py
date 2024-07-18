@@ -36,7 +36,7 @@ router = APIRouter()
 
 class InferenceWithJSONFileUploadContextParams(BaseModel):
     llm_identifier: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
-                                           description="Name of the model")
+                                         description="Name of the model")
     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
     embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
                                           description="Embedding model to use. Note: new embedding models would be downloaded")
@@ -209,8 +209,8 @@ def _run_inference_process_with_ctx_ocr_json_file_and_collect_result(run_id: str
         return ResponseHandler.error(data=f'Inference failed! Exit code: [{return_code}]. Error log: {err}')
 
 
-@router.get('/status', summary='Get status of inference',
-            description='API to get status of inference. Tells you if the inference process is ongoing or not.')
+@router.get('/status', summary='Check if there are any inference processes running',
+            description='API to get status of any other inference process. Tells you if the inference process is running or not.')
 async def inference_status():
     return ResponseHandler.success(data={"running": is_infer_process_running()})
 
@@ -286,7 +286,7 @@ async def inference_status():
 #         context_data_file.file.close()
 
 
-@router.post('/async/with-ctx-ocr-json-file',
+@router.post('/async/run',
              summary="Run inference in sync mode with by uploading a context OCR JSON file",
              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
 async def run_inference_async_ctx_json_file_upload(
@@ -341,7 +341,7 @@ async def run_inference_async_ctx_json_file_upload(
         prompt_text_file.file.close()
 
 
-@router.get('/status/{run_id}', summary='Get status of inference',
+@router.get('/async/run/{run_id}', summary='Get status/details of inference',
             description='API to get details of inference run.')
 async def get_inference_run_details(run_id: str):
     inference_run_dir = f'{Config.inferences_dir}/{run_id}'

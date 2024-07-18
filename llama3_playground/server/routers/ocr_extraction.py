@@ -254,14 +254,18 @@ async def get_ocr_yolo_run_details(run_id: str):
             with open(status_file, 'r') as f:
                 status = f.read()
             if 'success' in status:
-                response_file = os.path.join(ocr_run_dir, 'text-result.txt')
-                if os.path.exists(response_file):
-                    with open(response_file, 'r') as rf:
-                        response = rf.read()
-                        return ResponseHandler.success(
-                            data={"response": response, 'run_id': run_id, 'status': 'success'})
+                text_result_file = os.path.join(ocr_run_dir, 'text-result.txt')
+                ocr_result_file = os.path.join(ocr_run_dir, 'ocr-result.json')
+                if os.path.exists(text_result_file) and os.path.exists(ocr_result_file):
+                    with open(text_result_file, 'r') as rf:
+                        text_result = rf.read()
+                    with open(ocr_result_file, 'r') as rf:
+                        ocr_result = rf.read()
+                    return ResponseHandler.success(
+                        data={"text_result": text_result, "ocr_result": ocr_result, 'run_id': run_id,
+                              'status': 'success'})
                 else:
-                    return ResponseHandler.error(data='Result file not found!')
+                    return ResponseHandler.error(data='Result file/s not found!')
             else:
                 err_file = os.path.join(ocr_run_dir, 'error.log')
                 if os.path.exists(err_file):

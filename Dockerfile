@@ -51,6 +51,11 @@ RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
 
 RUN wandb disabled
 
+RUN cd /app/ && python -m venv lblstudio && /app/lblstudio/bin/python -m pip install label-studio
+
+RUN echo '#!/bin/bash' >> /start-lbl-studio.sh
+RUN echo 'export SECRET_KEY='' && source /app/lblstudio/bin/activate && label-studio start --port 8887' >> /start-lbl-studio.sh
+
 RUN echo '#!/bin/bash' >> /start-services.sh
 RUN mkdir -p $(jq -r .models_dir /app/config.json)
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh
@@ -61,6 +66,9 @@ RUN echo 'cd /app' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/ocr_streamlit.py --server.port 8885 --server.headless true --browser.gatherUsageStats false > /app/logs/ocr_streamlit.log 2>&1 &' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/dataset_streamlit.py --server.port 8886 --server.headless true --browser.gatherUsageStats false > /app/logs/dataset_streamlit.log 2>&1 &' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/infer_streamlit.py --server.port 8887 --server.headless true --browser.gatherUsageStats false > /app/logs/infer_streamlit.log 2>&1 &' >> /start-services.sh
+RUN echo 'nohup bash /start-lbl-studio.sh > /app/logs/label-studio.log 2>&1 &' >> /start-services.sh
 RUN echo "jupyter lab --allow-root --ip=0.0.0.0 --NotebookApp.password='' --NotebookApp.token='' --no-browser" >> /start-services.sh
+
+
 
 ENTRYPOINT ["bash", "/start-services.sh"]

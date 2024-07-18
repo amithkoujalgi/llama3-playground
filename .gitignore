@@ -44,3 +44,4 @@ version.json
 dist/
 llama3_playground.egg-info/
 *.egg-info/
+*.pyc

@@ -23,7 +23,7 @@ router = APIRouter()
 
 #
 # class InferenceWithFileUploadContextParams(BaseModel):
-#     model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+#     llm_identifier: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
 #                                      description="Name of the model")
 #     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
 #     prompt_text: str = pydantic.Field(
@@ -35,7 +35,7 @@ router = APIRouter()
 #
 
 class InferenceWithJSONFileUploadContextParams(BaseModel):
-    model_identifier: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+    llm_identifier: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
                                            description="Name of the model")
     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
     embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
@@ -43,7 +43,7 @@ class InferenceWithJSONFileUploadContextParams(BaseModel):
 
 
 # class InferenceWithFileContextParams(BaseModel):
-#     model_name: str = pydantic.Field(default=None, description="Name of the model")
+#     llm_identifier: str = pydantic.Field(default=None, description="Name of the model")
 #     context_data_file: str = pydantic.Field(default=None, description="Path to context data file")
 #     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
 #     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
@@ -51,7 +51,7 @@ class InferenceWithJSONFileUploadContextParams(BaseModel):
 #
 #
 # class InferenceWithOCRRunIDParams(BaseModel):
-#     model_name: str = pydantic.Field(default=None, description="Name of the model")
+#     llm_identifier: str = pydantic.Field(default=None, description="Name of the model")
 #     ocr_run_id: str = pydantic.Field(default=None, description="Run ID of an OCR run")
 #     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
 #     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")
@@ -59,7 +59,7 @@ class InferenceWithJSONFileUploadContextParams(BaseModel):
 #
 #
 # class InferenceWithTextContextParams(BaseModel):
-#     model_name: str = pydantic.Field(default=None, description="Name of the model")
+#     llm_identifier: str = pydantic.Field(default=None, description="Name of the model")
 #     context_data: str = pydantic.Field(default=None, description="Context data string")
 #     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
 #     prompt_text: str = pydantic.Field(default='', description="Custom prompt text for the model")

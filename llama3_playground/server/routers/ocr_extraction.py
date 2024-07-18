@@ -175,45 +175,45 @@ async def ocr_status():
     return ResponseHandler.success(data={"running": is_ocr_process_running()})
 
 
-@router.post('/sync/pdf/old', summary="Run OCR in sync mode on a PDF file", deprecated=True,
-             description="API to run OCR in sync mode on a PDF file and return a response. Does not return a response until OCR process is completed.")
-async def run_ocr_sync_pdf(file: UploadFile = File(...)):
-    ocr_run_id = str(uuid.uuid4())
-    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
-    os.makedirs(uploads_dir, exist_ok=True)
-    upload_file = os.path.join(uploads_dir, file.filename)
-    try:
-        contents = file.file.read()
-        with open(upload_file, 'wb') as f:
-            f.write(contents)
-        return _run_ocr_process_and_collect_result(run_id=ocr_run_id, pdf_file=upload_file)
-    except Exception as e:
-        return ResponseHandler.error(data="Error running OCR", exception=e)
-    finally:
-        file.file.close()
+# @router.post('/sync/pdf/old', summary="Run OCR in sync mode on a PDF file", deprecated=True,
+#              description="API to run OCR in sync mode on a PDF file and return a response. Does not return a response until OCR process is completed.")
+# async def run_ocr_sync_pdf(file: UploadFile = File(...)):
+#     ocr_run_id = str(uuid.uuid4())
+#     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+#     os.makedirs(uploads_dir, exist_ok=True)
+#     upload_file = os.path.join(uploads_dir, file.filename)
+#     try:
+#         contents = file.file.read()
+#         with open(upload_file, 'wb') as f:
+#             f.write(contents)
+#         return _run_ocr_process_and_collect_result(run_id=ocr_run_id, pdf_file=upload_file)
+#     except Exception as e:
+#         return ResponseHandler.error(data="Error running OCR", exception=e)
+#     finally:
+#         file.file.close()
 
 
-@router.post('/sync/pdf',
-             summary="Run OCR in sync mode on a PDF file. Uses YOLOv8 model from [ultralytics](https://github.com/ultralytics)",
-             description="API to run OCR in sync mode on a PDF file and return a response. Does not return a response until OCR process is completed.")
-async def run_ocr_sync_pdf_yolo(file: UploadFile = File(...)):
-    ocr_run_id = str(uuid.uuid4())
-    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
-    os.makedirs(uploads_dir, exist_ok=True)
-    upload_file = os.path.join(uploads_dir, file.filename)
-    try:
-        contents = file.file.read()
-        with open(upload_file, 'wb') as f:
-            f.write(contents)
-        return _run_ocr_process_and_collect_result_yolo(run_id=ocr_run_id, pdf_file=upload_file)
-    except Exception as e:
-        return ResponseHandler.error(data="Error running OCR", exception=e)
-    finally:
-        file.file.close()
+# @router.post('/sync/pdf',
+#              summary="Run OCR in sync mode on a PDF file. Uses YOLOv8 model from ultralytics - https://github.com/ultralytics ",
+#              description="API to run OCR in sync mode on a PDF file and return a response. Does not return a response until OCR process is completed.")
+# async def run_ocr_sync_pdf_yolo(file: UploadFile = File(...)):
+#     ocr_run_id = str(uuid.uuid4())
+#     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+#     os.makedirs(uploads_dir, exist_ok=True)
+#     upload_file = os.path.join(uploads_dir, file.filename)
+#     try:
+#         contents = file.file.read()
+#         with open(upload_file, 'wb') as f:
+#             f.write(contents)
+#         return _run_ocr_process_and_collect_result_yolo(run_id=ocr_run_id, pdf_file=upload_file)
+#     except Exception as e:
+#         return ResponseHandler.error(data="Error running OCR", exception=e)
+#     finally:
+#         file.file.close()
 
 
 @router.post('/async/pdf',
-             summary="Run OCR in async mode on a PDF file. Uses YOLOv8 model from [ultralytics](https://github.com/ultralytics)",
+             summary="Run OCR in async mode on a PDF file. Uses YOLOv8 model from ultralytics - https://github.com/ultralytics",
              description="API to run OCR in async mode on a PDF file")
 async def run_ocr_async_pdf_yolo(file: UploadFile = File(...)):
     ocr_run_id = str(uuid.uuid4())

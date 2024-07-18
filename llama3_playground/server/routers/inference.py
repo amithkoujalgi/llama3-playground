@@ -321,7 +321,7 @@ async def run_inference_async_ctx_json_file_upload(
             target=_run_inference_process_with_ctx_ocr_json_file_and_collect_result,
             kwargs={
                 "run_id": inference_run_id,
-                "model_name": inference_params.model_name,
+                "model_name": inference_params.llm_identifier,
                 "context_json_data_file": uploaded_ctx_json_file,
                 "question_file": uploaded_question_file,
                 "prompt_text_file": uploaded_prompt_text_file,

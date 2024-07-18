@@ -194,7 +194,7 @@ class YOLOv8OCR:
                 paragraph_gap = line['top'] - prev_bottom
                 paragraph_gaps.append(paragraph_gap)
                 if paragraph_gap > np.percentile(paragraph_gaps, 90):  # Use a higher percentile for paragraph breaks
-                    aligned_text += "\n\n---PAGE-SEPARATOR---\n\n"
+                    aligned_text += "\n\n---SEPARATOR---\n\n"
                 aligned_text += text_line + "\n"
 
                 prev_bottom = line['content'][-1][0][2][1]  # Update bottom position from the last element of the line

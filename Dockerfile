@@ -52,8 +52,10 @@ RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
 RUN wandb disabled
 
 RUN echo '#!/bin/bash' >> /start-services.sh
+RUN mkdir -p $(jq -r .models_dir /app/config.json)
 RUN echo 'supervisord -c /supervisord.conf' >> /start-services.sh
 RUN echo 'wandb disabled' >> /start-services.sh
+RUN echo '# cd /app/llama3_playground && uvicorn server.app:app --port 8070 --host 0.0.0.0'
 RUN echo 'cd /app/llama3_playground && nohup gunicorn server.app:app --keep-alive 3600 --timeout 3600 --graceful-timeout 300 --threads 10 --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8070 > /app/logs/app-server.log 2>&1 &' >> /start-services.sh
 RUN echo 'cd /app' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/ocr_streamlit.py --server.port 8885 --server.headless true --browser.gatherUsageStats false > /app/logs/ocr_streamlit.log 2>&1 &' >> /start-services.sh

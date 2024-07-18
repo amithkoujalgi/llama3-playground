@@ -21,21 +21,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-class InferenceWithFileUploadContextParams(BaseModel):
-    model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
-                                     description="Name of the model")
-    question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
-    prompt_text: str = pydantic.Field(
-        default='You are a helpful assistant. You answer the questions precisely and concisely and if you do not know the answer you promptly say that you do not know. You do not respond with any extra text apart from what has been asked.',
-        description="Custom prompt text for the model")
-    max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
-    embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
-                                          description="Embedding model to use. Note: new embedding models would be downloaded")
-
+#
+# class InferenceWithFileUploadContextParams(BaseModel):
+#     model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+#                                      description="Name of the model")
+#     question_text: str = pydantic.Field(default="Who are you?", description="Question to the LLM")
+#     prompt_text: str = pydantic.Field(
+#         default='You are a helpful assistant. You answer the questions precisely and concisely and if you do not know the answer you promptly say that you do not know. You do not respond with any extra text apart from what has been asked.',
+#         description="Custom prompt text for the model")
+#     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
+#     embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
+#                                           description="Embedding model to use. Note: new embedding models would be downloaded")
+#
 
 class InferenceWithJSONFileUploadContextParams(BaseModel):
-    model_name: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
-                                     description="Name of the model")
+    model_identifier: str = pydantic.Field(default=ModelManager.get_latest_model(lora_adapters_only=True),
+                                           description="Name of the model")
     max_new_tokens: int = pydantic.Field(default=128, description="Max new tokens to generate. Default is 128")
     embedding_model: str = pydantic.Field(default='Alibaba-NLP/gte-base-en-v1.5',
                                           description="Embedding model to use. Note: new embedding models would be downloaded")
@@ -214,74 +215,75 @@ async def inference_status():
     return ResponseHandler.success(data={"running": is_infer_process_running()})
 
 
-@router.post('/sync/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
-             description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
-async def run_inference_sync_ctx_file_upload(
-        inference_params: InferenceWithFileUploadContextParams = Depends(),
-        context_data_file: UploadFile = File(...)
-):
-    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
-    os.makedirs(uploads_dir, exist_ok=True)
-    uploaded_ctx_file = os.path.join(uploads_dir, context_data_file.filename)
-    try:
-        contents = context_data_file.file.read()
-        with open(uploaded_ctx_file, 'wb') as f:
-            f.write(contents)
-
-        inference_run_id = str(uuid.uuid4())
-        return _run_inference_process_with_ctx_text_file_and_collect_result(
-            run_id=inference_run_id,
-            model_name=inference_params.model_name,
-            context_data_file=uploaded_ctx_file,
-            question_text=inference_params.question_text,
-            prompt_text=inference_params.prompt_text,
-            max_new_tokens=inference_params.max_new_tokens,
-            embedding_model=inference_params.embedding_model
-        )
-    except Exception as e:
-        return ResponseHandler.error(data="Error running inference", exception=e)
-    finally:
-        context_data_file.file.close()
-
-
-@router.post('/async/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
-             description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
-async def run_inference_sync_ctx_file_upload(
-        inference_params: InferenceWithFileUploadContextParams = Depends(),
-        context_data_file: UploadFile = File(...)
-):
-    uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
-    os.makedirs(uploads_dir, exist_ok=True)
-    uploaded_ctx_file = os.path.join(uploads_dir, context_data_file.filename)
-    try:
-        contents = context_data_file.file.read()
-        with open(uploaded_ctx_file, 'wb') as f:
-            f.write(contents)
-
-        inference_run_id = str(uuid.uuid4())
-
-        thread = Thread(
-            name=inference_run_id,
-            target=_run_inference_process_with_ctx_text_file_and_collect_result,
-            kwargs={
-                "run_id": inference_run_id,
-                "model_name": inference_params.model_name,
-                "context_data_file": uploaded_ctx_file,
-                "question_text": inference_params.question_text,
-                "prompt_text": inference_params.prompt_text,
-                "max_new_tokens": inference_params.max_new_tokens,
-                "embedding_model": inference_params.embedding_model
-            }
-        )
-        thread.start()
-
-        return {
-            "run_id": inference_run_id
-        }
-    except Exception as e:
-        return ResponseHandler.error(data="Error running inference", exception=e)
-    finally:
-        context_data_file.file.close()
+#
+# @router.post('/sync/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
+#              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
+# async def run_inference_sync_ctx_file_upload(
+#         inference_params: InferenceWithFileUploadContextParams = Depends(),
+#         context_data_file: UploadFile = File(...)
+# ):
+#     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+#     os.makedirs(uploads_dir, exist_ok=True)
+#     uploaded_ctx_file = os.path.join(uploads_dir, context_data_file.filename)
+#     try:
+#         contents = context_data_file.file.read()
+#         with open(uploaded_ctx_file, 'wb') as f:
+#             f.write(contents)
+#
+#         inference_run_id = str(uuid.uuid4())
+#         return _run_inference_process_with_ctx_text_file_and_collect_result(
+#             run_id=inference_run_id,
+#             model_name=inference_params.model_name,
+#             context_data_file=uploaded_ctx_file,
+#             question_text=inference_params.question_text,
+#             prompt_text=inference_params.prompt_text,
+#             max_new_tokens=inference_params.max_new_tokens,
+#             embedding_model=inference_params.embedding_model
+#         )
+#     except Exception as e:
+#         return ResponseHandler.error(data="Error running inference", exception=e)
+#     finally:
+#         context_data_file.file.close()
+#
+#
+# @router.post('/async/with-ctx-file', summary="Run inference in sync mode with by uploading a context file",
+#              description="API to run inference in sync mode. Does not return a response until it is obtained from the LLM.")
+# async def run_inference_sync_ctx_file_upload(
+#         inference_params: InferenceWithFileUploadContextParams = Depends(),
+#         context_data_file: UploadFile = File(...)
+# ):
+#     uploads_dir = os.path.join(str(Path.home()), 'temp-data', 'file-uploads')
+#     os.makedirs(uploads_dir, exist_ok=True)
+#     uploaded_ctx_file = os.path.join(uploads_dir, context_data_file.filename)
+#     try:
+#         contents = context_data_file.file.read()
+#         with open(uploaded_ctx_file, 'wb') as f:
+#             f.write(contents)
+#
+#         inference_run_id = str(uuid.uuid4())
+#
+#         thread = Thread(
+#             name=inference_run_id,
+#             target=_run_inference_process_with_ctx_text_file_and_collect_result,
+#             kwargs={
+#                 "run_id": inference_run_id,
+#                 "model_name": inference_params.model_name,
+#                 "context_data_file": uploaded_ctx_file,
+#                 "question_text": inference_params.question_text,
+#                 "prompt_text": inference_params.prompt_text,
+#                 "max_new_tokens": inference_params.max_new_tokens,
+#                 "embedding_model": inference_params.embedding_model
+#             }
+#         )
+#         thread.start()
+#
+#         return {
+#             "run_id": inference_run_id
+#         }
+#     except Exception as e:
+#         return ResponseHandler.error(data="Error running inference", exception=e)
+#     finally:
+#         context_data_file.file.close()
 
 
 @router.post('/async/with-ctx-ocr-json-file',

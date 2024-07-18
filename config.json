@@ -1,7 +1,7 @@
 {
   "base_model": "unsloth/llama-3-8b-Instruct-bnb-4bit",
   "fine_tuned_model_name_prefix": "llama-3-8b-instruct-custom",
-  "training_dataset_dir_path": "/app/data/training-dataset",
+  "training_dataset_dir_path": "/app/data/training-dataset/llm",
   "checkpoints_dir": "/app/data/model-checkpoints",
   "models_dir": "/app/data/trained-models",
   "trainer_runs_dir": "/app/data/trainer-runs",

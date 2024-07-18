@@ -6,7 +6,7 @@ from typing import Any
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
-PARALLEL_RUNS_ERROR = "Cannot execute this operation because there are other operations running at the moment. Parallel operations aren't supported! Please try executing the operation after some time. You can also monitor the status of the operations using the /status API."
+PARALLEL_RUNS_ERROR = "Cannot execute this operation because there are other operations running at the moment. Parallel operations aren't supported! Please try executing the operation after some time. You can also monitor the status of the operations using the /api/operations/status API."
 
 
 def is_any_process_running() -> bool:
@@ -25,7 +25,7 @@ def is_training_process_running() -> bool:
 
 def is_ocr_process_running() -> bool:
     result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE, text=True)
-    if 'ocr.py' in result.stdout:
+    if 'ocr_yolo.py' in result.stdout:
         return True
     else:
         return False

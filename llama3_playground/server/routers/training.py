@@ -2,12 +2,36 @@ import logging
 
 from fastapi import APIRouter
 
+from llama3_playground.server.routers.utils import ResponseHandler
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# Example usage
+@router.get('/llm/run', summary='Start training LLM',
+            description='API to start training LLM')
+async def llm_training_start():
+    return ResponseHandler.success(data={"running": True})
+
+
+@router.get('/llm/details', summary='Get details of LLM training run',
+            description='API to get details of LLM training run')
+async def llm_training_details():
+    return ResponseHandler.success(data={"running": True})
+
+
+@router.get('/ocr/run', summary='Start training LLM',
+            description='API to start training LLM')
+async def ocr_training_start():
+    return ResponseHandler.success(data={"running": True})
+
+
+@router.get('/ocr/details', summary='Get details of OCR training run',
+            description='API to get details of OCR training run')
+async def ocr_training_details():
+    return ResponseHandler.success(data={"running": True})
+
 # @router.get('/status', summary='Get status of training',
 #             description='API to get status of training. Tells you if the training process is ongoing or not.')
 # async def training_status():

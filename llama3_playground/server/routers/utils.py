@@ -6,7 +6,9 @@ from typing import Any
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
-PARALLEL_RUNS_ERROR = "Cannot execute this operation because there are other operations running at the moment. Parallel operations aren't supported! Please try executing the operation after some time. You can also monitor the status of the operations using the /api/operations/status API."
+PARALLEL_RUNS_ERROR = ("Cannot execute this operation because there are other operations running at the moment. "
+                       "Parallel operations aren't supported! Please try executing the operation after some time. You "
+                       "can also monitor the status of the operations using the /api/operations/status API.")
 
 
 def is_any_process_running() -> bool:
@@ -17,7 +19,7 @@ def is_any_process_running() -> bool:
 
 def is_training_process_running() -> bool:
     result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE, text=True)
-    if 'train.py' in result.stdout:
+    if 'llm_train.py' in result.stdout:
         return True
     else:
         return False
@@ -25,7 +27,7 @@ def is_training_process_running() -> bool:
 
 def is_ocr_process_running() -> bool:
     result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE, text=True)
-    if 'ocr_yolo.py' in result.stdout:
+    if 'ocr_infer.py' in result.stdout:
         return True
     else:
         return False
@@ -33,7 +35,7 @@ def is_ocr_process_running() -> bool:
 
 def is_infer_process_running() -> bool:
     result = subprocess.run(['ps', '-ef'], stdout=subprocess.PIPE, text=True)
-    if 'infer_new.py' in result.stdout:
+    if 'llm_infer.py' in result.stdout:
         return True
     else:
         return False

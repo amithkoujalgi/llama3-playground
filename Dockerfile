@@ -69,6 +69,4 @@ RUN echo '#nohup streamlit run /app/infer_streamlit.py --server.port 8887 --serv
 RUN echo 'nohup bash /start-lbl-studio.sh > /app/logs/label-studio.log 2>&1 &' >> /start-services.sh
 RUN echo "jupyter lab --allow-root --ip=0.0.0.0 --NotebookApp.password='' --NotebookApp.token='' --no-browser" >> /start-services.sh
 
-
-
 ENTRYPOINT ["bash", "/start-services.sh"]

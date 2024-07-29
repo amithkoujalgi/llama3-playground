@@ -27,8 +27,10 @@ embedder = HuggingFaceEmbeddings()
 
 # Create the vector store
 vector = FAISS.from_documents(data, embedder)
+
 # Input
 retriever = vector.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+
 # Define llm
 llm = Ollama(model="llama3")
 

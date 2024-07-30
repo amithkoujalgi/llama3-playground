@@ -14,8 +14,8 @@ RUN jupyter labextension disable "@jupyterlab/apputils-extension:announcements"
 RUN pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
 RUN rm -rf /root/.cache/huggingface/hub # delete older models if any
 
-ENV SHELL "/bin/bash"
-ENV BASE_MODEL "unsloth/llama-3-8b-Instruct-bnb-4bit"
+ENV SHELL="/bin/bash"
+ENV BASE_MODEL="unsloth/llama-3-8b-Instruct-bnb-4bit"
 
 RUN huggingface-cli download ${BASE_MODEL}
 
@@ -31,7 +31,7 @@ RUN rm -rf /app/requirements.txt /app/build_wheel.py /app/setup.py /app/dist /ap
 RUN mkdir -p /app/logs/
 RUN mkdir -p /app/data/
 
-ENV EASY_OCR_MODELS_DIR "/app/models/easyocr"
+ENV EASY_OCR_MODELS_DIR="/app/models/easyocr"
 
 #RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
 #    cd $EASY_OCR_MODELS_DIR &&  \
@@ -50,10 +50,9 @@ RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \
     rm english_g2.zip
 
 RUN wandb disabled
-
-# RUN cd /app/ && python -m venv lblstudio && /app/lblstudio/bin/python -m pip install label-studio
-# RUN echo '#!/bin/bash' >> /start-lbl-studio.sh
-# RUN echo 'export SECRET_KEY='' && source /app/lblstudio/bin/activate && label-studio start --port 8887' >> /start-lbl-studio.sh
+RUN cd /app/ && python -m venv lblstudio && /app/lblstudio/bin/python -m pip install label-studio
+RUN echo '#!/bin/bash' >> /start-lbl-studio.sh
+RUN echo 'export SECRET_KEY='' && source /app/lblstudio/bin/activate && label-studio start --port 8887' >> /start-lbl-studio.sh
 
 RUN echo '#!/bin/bash' >> /start-services.sh
 RUN mkdir -p $(jq -r .models_dir /app/config.json)
@@ -65,7 +64,7 @@ RUN echo 'cd /app' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/ocr_streamlit.py --server.port 8885 --server.headless true --browser.gatherUsageStats false > /app/logs/ocr_streamlit.log 2>&1 &' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/dataset_streamlit.py --server.port 8886 --server.headless true --browser.gatherUsageStats false > /app/logs/dataset_streamlit.log 2>&1 &' >> /start-services.sh
 RUN echo '#nohup streamlit run /app/infer_streamlit.py --server.port 8887 --server.headless true --browser.gatherUsageStats false > /app/logs/infer_streamlit.log 2>&1 &' >> /start-services.sh
-# RUN echo 'nohup bash /start-lbl-studio.sh > /app/logs/label-studio.log 2>&1 &' >> /start-services.sh
+RUN echo 'nohup bash /start-lbl-studio.sh > /app/logs/label-studio.log 2>&1 &' >> /start-services.sh
 RUN echo "jupyter lab --allow-root --ip=0.0.0.0 --NotebookApp.password='' --NotebookApp.token='' --no-browser" >> /start-services.sh
 
 ENTRYPOINT ["bash", "/start-services.sh"]

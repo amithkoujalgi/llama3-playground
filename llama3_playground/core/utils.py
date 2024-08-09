@@ -105,6 +105,8 @@ class LLMInferenceRunner:
         module_path = os.path.join(module_path, 'core', 'llm_infer.py')
 
         inference_dir = f'{Config.inferences_dir}/{run_id}'
+        os.makedirs(inference_dir, exist_ok=True)
+
         cmd_arr = [
             sys.executable, module_path,
             '-m', model_name,

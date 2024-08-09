@@ -149,7 +149,7 @@ async def get_inference_run_details(run_id: str):
                     with open(response_file, 'r') as rf:
                         response = rf.read()
                         return ResponseHandler.success(
-                            data={"llm_response": response, "result": result_json, 'run_id': run_id,
+                            data={"llm_response": response, "result": json.loads(result_json), 'run_id': run_id,
                                   'status': 'success'})
                 else:
                     return ResponseHandler.error(data='Response file not found!')

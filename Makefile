@@ -10,7 +10,7 @@ wheel:
 start-gpu:
 	docker container prune -f; docker run --gpus=all \
 	    --shm-size 8G \
-		-it \
+		-itd \
 		-p "8883:8070" \
 		-p "8884:9001" \
 		-p "8885:8885" \
@@ -22,7 +22,7 @@ start-gpu:
 
 start:
 	docker container prune -f; docker run \
-		-it \
+		-itd \
 		-p "8883:8070" \
 		-p "8884:9001" \
 		-p "8885:8885" \

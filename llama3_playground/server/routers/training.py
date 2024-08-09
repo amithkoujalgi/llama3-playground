@@ -21,8 +21,8 @@ async def llm_training_details():
     return ResponseHandler.success(data={"running": True})
 
 
-@router.get('/ocr/run', summary='Start training LLM',
-            description='API to start training LLM')
+@router.get('/ocr/run', summary='Start training OCR model',
+            description='API to start training OCR model')
 async def ocr_training_start():
     return ResponseHandler.success(data={"running": True})
 

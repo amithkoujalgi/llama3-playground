@@ -8,7 +8,7 @@ wheel:
 	python build_wheel.py;
 
 start-gpu:
-	docker container prune -f; docker run --gpus=all \
+	docker container prune -f; docker run --privileged --gpus=all \
 	    --shm-size 8G \
 		-itd \
 		-p "8883:8070" \

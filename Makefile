@@ -19,7 +19,7 @@ start-gpu:
 		-p "8888:8888" \
 		-v ~/llama3-playground-data:/app/data \
 		amithkoujalgi/llama3-playground:0.1; \
-		ngrok http http://localhost:8883
+		#ngrok http http://localhost:8883
 
 start:
 	docker container prune -f; docker run \

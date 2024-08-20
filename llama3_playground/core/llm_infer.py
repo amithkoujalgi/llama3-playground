@@ -62,6 +62,7 @@ class CreateChromaDB:
         self.top_k = top_k
         self.embedding_function = get_embedding_function(embed_model_path)
         self.query_chunk_map = {}
+        self.query_chunk_id_map = {}
 
     def populate_database(self, ocr_text: str, pdf_file_path: str):
         if self.clear_db:
@@ -74,12 +75,15 @@ class CreateChromaDB:
             print("Vector database already created.")
 
     def generate_chunks_from_ocr_text(self, ocr_text: str, pdf_file_path: str) -> List[Document]:
-        # split_pages = re.split(r'---PAGE \d+---', ocr_text)
-        split_pages = re.split(r'\n\n---PAGE-SEPARATOR---\n\n', ocr_text)
+        split_pages = re.split(r'\n\n---PAGE \d+---\n\n', ocr_text)
+        # split_pages = re.split(r'\n\n---PAGE-SEPARATOR---\n\n', ocr_text)
         split_pages = [page.strip() for page in split_pages if page.strip()]
         chunks = []
         for idx, page in enumerate(split_pages):
-            doc = Document(page_content=page, metadata={"source": pdf_file_path, "page": idx})
+            # page_ocr_coordinates = ocr_coordinates_map[idx]
+            page_ocr_coordinates = str([])
+            doc = Document(page_content=page,
+                           metadata={"source": pdf_file_path, "page": idx, "coordinates": page_ocr_coordinates})
             chunks.append(doc)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=self.chunk_size,
                                                        chunk_overlap=self.chunk_overlap)
@@ -136,17 +140,34 @@ class CreateChromaDB:
         if os.path.exists(self.chroma_path):
             shutil.rmtree(self.chroma_path)
 
-    def retrieve_relevant_chunks(self, query_text: dict) -> str:
+    def db_similarity_search(self, query, top_k, filter_dict=None):
         db = Chroma(persist_directory=self.chroma_path, embedding_function=self.embedding_function)
-        # query_text = extract_json_from_string(query_text)
+        results = db.similarity_search_with_score(query, k=top_k, filter=filter_dict)
+        # print(results)
+        # print("\n")
+        return results
+
+    def get_similar_chunks_metadata(self, query, top_k, filter_in_list):
+        filter_dict = {"id": {"$in": filter_in_list}}
+        results = self.db_similarity_search(query=query, top_k=top_k, filter_dict=filter_dict)
+        print(query)
+        print(results)
+        print(filter_dict)
+        print("\n")
+        page_meta = {doc.metadata.get('page'): doc.metadata.get('coordinates') for doc, _score in results}
+        return page_meta
+
+    def retrieve_relevant_chunks(self, query_text: dict) -> str:
         for field_query, field_name in query_text.items():
-            results = db.similarity_search_with_score(field_query, k=self.top_k)
-            # context_text = "\n\n---\n\n".join([doc.page_content for doc, _score in results])
-            # print(f"Retrieved relevant context chunks: \n{context_text}\n")
+            results = self.db_similarity_search(query=field_query, top_k=self.top_k)
+
             sources = [doc.metadata.get('id', None) for doc, _score in results]
             print(f"{field_query}:\n{sources}\n")
+            self.query_chunk_id_map[f"{field_query} :as: {field_name}"] = sources
+
             context_text = [doc.page_content for doc, _score in results]
-            self.query_chunk_map[field_name] = context_text
+            self.query_chunk_map[f"{field_query} :as: {field_name}"] = context_text
+
         query_chunk_combined = self.combine_keys_if_match()
         query_chunk_combined = self.format_query(query_chunk_combined)
         return query_chunk_combined
@@ -179,7 +200,7 @@ class CreateChromaDB:
                     combined_values.update(values2)
                     visited.add(key2)
 
-            combined_key = ', '.join(combined_keys)
+            combined_key = '; '.join(combined_keys)
             print(f"combined keys: {combined_key}")
             combined_data[combined_key] = list(combined_values)
             visited.add(key1)
@@ -201,7 +222,7 @@ def extract_json_from_string(input_str, query_text):
     except Exception as e:
         print(f"Error: {str(e)}")
         query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
-            0].split(", ")
+            0].split("; ")
         return {field: None for field in query_fields}
 
 
@@ -232,28 +253,6 @@ def run_inference(model_path: str,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
-    # prompt = """
-    # You are a smart, logical and helpful assistant.
-    # [PROMPT_PLACEHOLDER]
-
-    # Below is the context that represents a document excerpt (a section of a document), paired with a related question. Write a suitable response to the question based on the given context.
-
-    # ### Context:
-    # {}
-
-    # ### Question:
-    # {}
-
-    # ### Response:
-    # {}"""
-
-    # if prompt_text is not None and type(prompt_text) == str:
-    #     prompt = prompt.replace('[PROMPT_PLACEHOLDER]', prompt_text)
-
-    # with open(prompt_text_file, 'w') as f:
-    #     f.write(prompt)
-    # print(f'Wrote prompt text to: {prompt_text_file}')
-
     with open(prompt_text_file, 'r') as f:
         prompt = f.read()
 
@@ -273,6 +272,7 @@ def run_inference(model_path: str,
 
     final_response = ""
     final_result = {}
+    final_result_raw = []
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
     for query_text, context_text in query_chunk_map.items():
         inputs = tokenizer(
@@ -283,11 +283,6 @@ def run_inference(model_path: str,
                     "",  # output - leave this blank for generation!
                 )
             ], return_tensors="pt").to("cuda")
-
-        # from transformers import TextStreamer
-        # text_streamer = TextStreamer(tokenizer)
-        # outputs = model.generate(**inputs, streamer=text_streamer, max_new_tokens=128, use_cache=True)
-        # response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
 
         outputs = model.generate(**inputs, max_new_tokens=max_new_tokens, use_cache=True)
         response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
@@ -305,6 +300,7 @@ def run_inference(model_path: str,
         print(response)
         print("---------")
         final_result.update(response)
+        final_result_raw.append({"query_text": query_text, "response": response})
 
     print("\n")
     print("---------")
@@ -313,42 +309,101 @@ def run_inference(model_path: str,
     print(final_result)
     print("---------")
 
-    final_result = format_result_json(final_result)
+    final_result_json = format_result_json(result_json=final_result_raw, db_obj=chroma_db)
 
     print("\n")
     print("---------")
     print("Final Result:")
     print("---------")
-    print(final_result)
+    print(final_result_json)
     print("---------")
 
     with open(resp_file, 'w') as f:
         f.write(final_response)
     print(f'Wrote the response to {resp_file}')
 
-    final_result = json.dumps(final_result)
+    final_result_json = json.dumps(final_result_json)
     with open(result_file, 'w') as f:
-        f.write(final_result)
+        f.write(final_result_json)
     print(f'Wrote the response to {result_file}')
 
 
-def format_result_json(result_json):
+def get_coordinates_for_response(value, coord_dict):
+    if value:
+        value_tokens = value.split(" ")
+        start_coordinates = None
+        end_coordinates = None
+        try:
+            if value in coord_dict:
+                final_coordinates = coord_dict[value]
+                return final_coordinates
+            # else:
+            #     for s_idx, (s_field, s_coord) in enumerate(list(coord_dict.items())):
+            #         if s_field[0] == value_tokens[0]:
+            #             start_coordinates = s_coord
+            #             for e_idx, (e_field, e_coord) in enumerate(list(coord_dict.items())[s_idx+1:]):
+            #                 if e_field == value_tokens[-1]:
+            #                     end_coordinates = e_coord
+            #                     break
+            #         else:
+
+            #     return final_coordinates
+
+        except Exception as e:
+            print(str(e))
+            return []
+    else:
+        return []
+
+
+def format_result_json(result_json, db_obj):
+    page_coordinates_map = {}
+    for result in result_json:
+        query_text, response = result['query_text'], result['response']
+        print(query_text)
+        query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
+            0].split("; ")
+        for field in query_fields:
+            print(field)
+            field_new_1 = field.split(" :as: ")[0]
+            field_new_2 = field.split(" :as: ")[1]
+            value = response[field_new_2]
+            if value is not None:
+                sources = db_obj.query_chunk_id_map.get(field, None)
+                query = f"{field}: {value}"
+                # query = f"{field_new_1}: {value}"
+                # query = f"{value}"
+                # if isinstance(value, bool):
+                #     query = f"{field}: {value}"
+                page_meta = db_obj.get_similar_chunks_metadata(query=query, top_k=3, filter_in_list=sources)
+                pg_no = list(page_meta.keys())[0]
+                pg_coord = list(page_meta.values())[0]
+                if pg_no not in page_coordinates_map:
+                    page_coordinates_map[pg_no] = []
+                page_coordinates_map[pg_no].append({"field": field_new_2, "value": value, "coordinates": pg_coord})
+            else:
+                if -1 not in page_coordinates_map:
+                    page_coordinates_map[-1] = []
+                page_coordinates_map[-1].append({"field": field_new_2, "value": value, "coordinates": []})
+
     final_result_json = {"result": []}
-    page_res_json = {'pageNo': 0, 'Fields': []}
-    for field, value in result_json.items():
-        field_res_json = {}
-        field_res_json['key'] = field
-        field_res_json['validation_rules'] = []
-        field_res_json['field_type'] = "TEXT"
-        field_res_json['valueSet'] = [
-            {"value": value, "coordinates": [], "is_validated": False, "source": "Llama3-RAG"}]
-        field_res_json['validation_status'] = "VALID_VALUE"
-        field_res_json['confidence_score'] = 100
-        field_res_json['is_mandatory'] = False
-        field_res_json['is_user_edited'] = False
-        field_res_json['validationResults'] = []
-        page_res_json['Fields'].append(field_res_json)
-    final_result_json["result"].append(page_res_json)
+    for page in page_coordinates_map.keys():
+        page_res_json = {'pageNo': page, 'Fields': [], 'document_type': ""}
+        for field_dict in page_coordinates_map[page]:
+            field_res_json = {}
+            field_res_json['key'] = field_dict['field']
+            field_res_json['validation_rules'] = []
+            field_res_json['field_type'] = "TEXT"
+            field_res_json['valueSet'] = [
+                {"value": field_dict['value'], "coordinates": field_dict['coordinates'], "is_validated": False,
+                 "source": "Llama3-RAG"}]
+            field_res_json['validation_status'] = "VALID_VALUE"
+            field_res_json['confidence_score'] = 100
+            field_res_json['is_mandatory'] = False
+            field_res_json['is_user_edited'] = False
+            field_res_json['validationResults'] = []
+            page_res_json['Fields'].append(field_res_json)
+        final_result_json["result"].append(page_res_json)
     return final_result_json
 
 

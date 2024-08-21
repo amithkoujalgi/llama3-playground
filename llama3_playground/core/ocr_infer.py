@@ -19,10 +19,12 @@ model_dir = "/app/data/ultralytics/trained-models"
 
 
 class YOLOv8OCR:
-    def __init__(self, run_dir: str, pdf_file_path: str, model_path: str):
+    def __init__(self, run_dir: str, pdf_file_path: str, model_path: str, run_id: str):
+        self._run_id = run_id
         self._run_dir = run_dir
         self._pdf_file_path = pdf_file_path
         self._model_path = model_path
+        self._response_json = {"text_result": "", "ocr_result": {}, "run_id": run_id, "status": "failed"}
 
     def _pdf_to_images(self) -> []:
         """
@@ -68,14 +70,15 @@ class YOLOv8OCR:
             processed_images.append(processed_image_file)
 
         output_file = os.path.join(self._run_dir, 'text-result.txt')
-        self._extract_and_align_text(processed_images, output_file)
+        ocr_json = self._extract_and_align_text(processed_images, output_file)
 
-        ocr_data = {
-            "ocr-data": {},
-            "checkboxes": all_bboxes
-        }
+        self._response_json["ocr_result"] = {
+            "ocr-data": ocr_json,
+            "checkboxes": all_bboxes}
+        self._response_json["status"] = "success"
+
         with open(f'{self._run_dir}/ocr-result.json', 'w') as f:
-            f.write(json.dumps(ocr_data, indent=4))
+            f.write(json.dumps(self._response_json, indent=4))
 
     def _infer_from_model(self, src_image_file: str, target_image_file: str):
         # 0: checked, 1: unchecked
@@ -159,12 +162,28 @@ class YOLOv8OCR:
         return image, bboxes
 
     def _extract_and_align_text(self, images, output_file, line_threshold=20, paragraph_threshold=50):
+        def create_bounding_box(bbox_data):
+            xs = []
+            ys = []
+            for x, y in bbox_data:
+                xs.append(x)
+                ys.append(y)
+
+            left = int(min(xs))
+            top = int(min(ys))
+            right = int(max(xs))
+            bottom = int(max(ys))
+
+            return [left, top, right, bottom]
+
         reader = easyocr.Reader(['en'])
         aligned_text = ""
         paragraph_gaps = []
 
+        ocr_json = {}
         page_num = 0
         for img in images:
+            ocr_json[page_num] = []
             aligned_text = aligned_text + f"\n\n---PAGE {page_num}---\n\n"
             img_ = Image.open(img)
             img_ = np.array(img_)  # Convert PIL Image to numpy array for EasyOCR
@@ -192,6 +211,9 @@ class YOLOv8OCR:
                 line['content'].sort(key=lambda x: x[0][0][0])  # Sort by X coordinate
                 text_line = ' '.join([text for _, text in line['content']])
 
+                for bbox, text in line['content']:
+                    ocr_json[page_num].append({text: create_bounding_box(bbox)})
+
                 # Check for paragraph breaks
                 paragraph_gap = line['top'] - prev_bottom
                 paragraph_gaps.append(paragraph_gap)
@@ -205,6 +227,8 @@ class YOLOv8OCR:
         with open(output_file, 'w') as f:
             f.write(aligned_text)
         print(f"Writing to: {output_file}")
+        self._response_json["text_result"] = aligned_text
+        return ocr_json
 
 
 def print_cli_args(cli_args: argparse.Namespace):
@@ -253,7 +277,7 @@ if __name__ == '__main__':
     fillpdfs.flatten_pdf(pdfFile, pdfFile, as_images=False)
 
     try:
-        ocr = YOLOv8OCR(run_dir=outDir, pdf_file_path=pdfFile, model_path=model_dir)
+        ocr = YOLOv8OCR(run_dir=outDir, pdf_file_path=pdfFile, model_path=model_dir, run_id=run_id)
         ocr.process()
         with open(os.path.join(outDir, 'RUN-STATUS'), 'w') as f:
             f.write("success")

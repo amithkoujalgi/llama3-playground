@@ -64,24 +64,25 @@ class CreateChromaDB:
         self.query_chunk_map = {}
         self.query_chunk_id_map = {}
 
-    def populate_database(self, ocr_text: str, pdf_file_path: str):
+    def populate_database(self, ocr_text: str, pdf_file_path: str, ocr_coordinates: dict):
         if self.clear_db:
             print("Clearing vector database...")
             self.clear_database()
         if not os.path.exists(self.chroma_path):
-            chunks = self.generate_chunks_from_ocr_text(ocr_text=ocr_text, pdf_file_path=pdf_file_path)
+            chunks = self.generate_chunks_from_ocr_text(ocr_text=ocr_text, pdf_file_path=pdf_file_path,
+                                                        ocr_coordinates=ocr_coordinates)
             self.add_to_chroma(chunks=chunks)
         else:
             print("Vector database already created.")
 
-    def generate_chunks_from_ocr_text(self, ocr_text: str, pdf_file_path: str) -> List[Document]:
+    def generate_chunks_from_ocr_text(self, ocr_text: str, pdf_file_path: str, ocr_coordinates: dict) -> List[Document]:
         split_pages = re.split(r'\n\n---PAGE \d+---\n\n', ocr_text)
         # split_pages = re.split(r'\n\n---PAGE-SEPARATOR---\n\n', ocr_text)
         split_pages = [page.strip() for page in split_pages if page.strip()]
         chunks = []
         for idx, page in enumerate(split_pages):
-            # page_ocr_coordinates = ocr_coordinates_map[idx]
-            page_ocr_coordinates = str([])
+            page_ocr_coordinates = json.dumps(ocr_coordinates[str(idx)])
+            # page_ocr_coordinates = str([])
             doc = Document(page_content=page,
                            metadata={"source": pdf_file_path, "page": idx, "coordinates": page_ocr_coordinates})
             chunks.append(doc)
@@ -151,9 +152,8 @@ class CreateChromaDB:
         filter_dict = {"id": {"$in": filter_in_list}}
         results = self.db_similarity_search(query=query, top_k=top_k, filter_dict=filter_dict)
         print(query)
-        print(results)
+        # print(results)
         print(filter_dict)
-        print("\n")
         page_meta = {doc.metadata.get('page'): doc.metadata.get('coordinates') for doc, _score in results}
         return page_meta
 
@@ -223,7 +223,7 @@ def extract_json_from_string(input_str, query_text):
         print(f"Error: {str(e)}")
         query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
             0].split("; ")
-        return {field: None for field in query_fields}
+        return {field.split(" :as: ")[1]: None for field in query_fields}
 
 
 def run_inference(model_path: str,
@@ -263,7 +263,7 @@ def run_inference(model_path: str,
 
     chroma_db = CreateChromaDB(db_path=rag_db_path, embed_model_path=embed_model_path, clear_db=clear_db,
                                chunk_size=chunk_size, chunk_overlap=chunk_overlap, top_k=top_k)
-    chroma_db.populate_database(ocr_text=text_data, pdf_file_path=ctx_json_file)
+    chroma_db.populate_database(ocr_text=text_data, pdf_file_path=ctx_json_file, ocr_coordinates=ocr_data['ocr-data'])
     query_chunk_map = chroma_db.retrieve_relevant_chunks(query_text=question_text)
 
     with open(chunks_text_file, 'w') as f:
@@ -308,6 +308,8 @@ def run_inference(model_path: str,
     print("---------")
     print(final_result)
     print("---------")
+    print("\n")
+
 
     final_result_json = format_result_json(result_json=final_result_raw, db_obj=chroma_db)
 
@@ -361,13 +363,17 @@ def format_result_json(result_json, db_obj):
     for result in result_json:
         query_text, response = result['query_text'], result['response']
         print(query_text)
+        print("\n")
         query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
             0].split("; ")
         for field in query_fields:
             print(field)
             field_new_1 = field.split(" :as: ")[0]
-            field_new_2 = field.split(" :as: ")[1]
+            field_new_2 = field.split(" :as: ")[1].replace(" ", "_")
             value = response[field_new_2]
+            value_token_list = None
+            if isinstance(value, str):
+                value_token_list = value.strip().split(" ")
             if value is not None:
                 sources = db_obj.query_chunk_id_map.get(field, None)
                 query = f"{field}: {value}"
@@ -377,14 +383,27 @@ def format_result_json(result_json, db_obj):
                 #     query = f"{field}: {value}"
                 page_meta = db_obj.get_similar_chunks_metadata(query=query, top_k=3, filter_in_list=sources)
                 pg_no = list(page_meta.keys())[0]
-                pg_coord = list(page_meta.values())[0]
+                pg_coord = json.loads(list(page_meta.values())[0])
+                left, top, right, bottom = [None, None, None, None]
+                if value_token_list:
+                    for coord in pg_coord:
+                        if left is None and top is None and value_token_list[0] in coord:
+                            print(coord)
+                            left, top, right, bottom = coord[value_token_list[0]]
+                        if left is not None and top is not None and value_token_list[-1] in coord:
+                            print(coord)
+                            _, _, right, bottom = coord[value_token_list[-1]]
+                            break
                 if pg_no not in page_coordinates_map:
                     page_coordinates_map[pg_no] = []
-                page_coordinates_map[pg_no].append({"field": field_new_2, "value": value, "coordinates": pg_coord})
+                page_coordinates_map[pg_no].append(
+                    {"field": field_new_2, "value": value, "coordinates": [left, top, right, bottom]})
             else:
                 if -1 not in page_coordinates_map:
                     page_coordinates_map[-1] = []
                 page_coordinates_map[-1].append({"field": field_new_2, "value": value, "coordinates": []})
+            print("---------\n")
+
 
     final_result_json = {"result": []}
     for page in page_coordinates_map.keys():

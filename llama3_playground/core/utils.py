@@ -3,7 +3,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Union
-
+import json
 from starlette.responses import JSONResponse
 
 from llama3_playground.core.config import Config
@@ -17,6 +17,7 @@ class OCRInferenceRunner:
         module_path = os.path.join(module_path, 'core', 'ocr_infer.py')
 
         ocr_run_dir = f'{Config.ocr_runs_dir}/{run_id}'
+        os.makedirs(ocr_run_dir, exist_ok=True)
 
         cmd_arr = [
             sys.executable, module_path,

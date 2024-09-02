@@ -85,7 +85,7 @@ async def get_ocr_yolo_run_details(run_id: str):
             return ResponseHandler.success(
                 data={"response": None, 'run_id': run_id, 'status': 'running'})
     else:
-        return ResponseHandler.error(data=f"Couldn't get inference run details for run ID {run_id}")
+        return ResponseHandler.error(data=f"Couldn't get OCR run details for run ID {run_id}")
 
 # def _run_ocr_process_and_collect_result(run_id: str, pdf_file: str) -> JSONResponse:
 #     import llama3_playground

@@ -190,7 +190,7 @@ class YOLOv8OCR:
             # input_to_ocr_file_name = f"{self._intermediate_results_path}/input_to_ocr.jpg"
             # print(f"Writing to: {input_to_ocr_file_name}")
             # cv2.imwrite(input_to_ocr_file_name, img)
-            results = reader.readtext(img_, detail=1)
+            results = reader.readtext(img_, detail=1, width_ths=0)
 
             # Group results by lines based on vertical position
             lines = []

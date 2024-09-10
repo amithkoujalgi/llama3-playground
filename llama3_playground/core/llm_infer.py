@@ -4,6 +4,7 @@
 import json
 import os
 import sys
+import time
 
 import numpy as np
 # noinspection PyUnresolvedReferences
@@ -159,10 +160,11 @@ class CreateChromaDB:
 
     def retrieve_relevant_chunks(self, query_text: dict) -> str:
         for field_query, field_name in query_text.items():
+            temp_start_time = time.time()
             results = self.db_similarity_search(query=field_query, top_k=self.top_k)
 
             sources = [doc.metadata.get('id', None) for doc, _score in results]
-            print(f"{field_query}:\n{sources}\n")
+            print(f"{field_query}: {time.time() - temp_start_time} seconds :\n{sources}\n")
             self.query_chunk_id_map[f"{field_query} :as: {field_name}"] = sources
 
             context_text = [doc.page_content for doc, _score in results]
@@ -241,10 +243,13 @@ def run_inference(model_path: str,
                   chunk_overlap: int,
                   top_k: int,
                   clear_db: bool):
+    start_time = time.time()
+
     max_seq_length = 2048  # Choose any! We auto support RoPE Scaling internally!
     dtype = None  # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True  # Use 4bit quantization to reduce memory usage. Can be False.
 
+    print(f"\n================== Loading the LLM model from {model_path} ==================")
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=model_path,  # YOUR MODEL YOU USED FOR TRAINING
         max_seq_length=max_seq_length,
@@ -252,6 +257,7 @@ def run_inference(model_path: str,
         load_in_4bit=load_in_4bit,
     )
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
+    print(f"Model Loaded : {time.time() - start_time} seconds")
 
     with open(prompt_text_file, 'r') as f:
         prompt = f.read()
@@ -261,10 +267,14 @@ def run_inference(model_path: str,
         text_data = ctx_dict['text_result']
         ocr_data = ctx_dict['ocr_result']
 
+    print(f"\n================== Creating Vector DB ==================")
     chroma_db = CreateChromaDB(db_path=rag_db_path, embed_model_path=embed_model_path, clear_db=clear_db,
                                chunk_size=chunk_size, chunk_overlap=chunk_overlap, top_k=top_k)
     chroma_db.populate_database(ocr_text=text_data, pdf_file_path=ctx_json_file, ocr_coordinates=ocr_data['ocr-data'])
+    print(f"Populated Vector DB: {time.time() - start_time} seconds")
     query_chunk_map = chroma_db.retrieve_relevant_chunks(query_text=question_text)
+    print(f"Retrieved relevant chunks: {time.time() - start_time} seconds")
+
 
     with open(chunks_text_file, 'w') as f:
         f.write(json.dumps(query_chunk_map))
@@ -274,7 +284,10 @@ def run_inference(model_path: str,
     final_result = {}
     final_result_raw = []
     FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
+    print(f"\n================== Genreating model response ==================")
+    model_start_time = time.time()
     for query_text, context_text in query_chunk_map.items():
+        temp_start_time = time.time()
         inputs = tokenizer(
             [
                 prompt.format(
@@ -298,6 +311,7 @@ def run_inference(model_path: str,
         print("Response:")
         print("---------")
         print(response)
+        print(f"Time taken: {time.time() - temp_start_time} seconds")
         print("---------")
         final_result.update(response)
         final_result_raw.append({"query_text": query_text, "response": response})
@@ -309,9 +323,11 @@ def run_inference(model_path: str,
     print(final_result)
     print("---------")
     print("\n")
-
+    print(f"Model response Genreated: {time.time() - model_start_time} seconds")
 
     final_result_json = format_result_json(result_json=final_result_raw, db_obj=chroma_db)
+
+    print(f"Time taken: {time.time() - start_time} seconds")
 
     print("\n")
     print("---------")
@@ -328,6 +344,7 @@ def run_inference(model_path: str,
     with open(result_file, 'w') as f:
         f.write(final_result_json)
     print(f'Wrote the response to {result_file}')
+    print(f"Time taken: {time.time() - start_time} seconds")
 
 
 def get_coordinates_for_response(value, coord_dict):

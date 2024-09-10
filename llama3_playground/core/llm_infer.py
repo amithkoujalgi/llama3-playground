@@ -215,17 +215,20 @@ def extract_json_from_string(input_str, query_text):
     json_pattern = re.compile(r'\{.*\}', re.DOTALL)
     json_match = json_pattern.search(input_str)
 
+    query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
+        0].split("; ")
+    query_fields = [field.split(" :as: ")[1] for field in query_fields]
     try:
         if json_match:
             json_str = json_match.group()
-            return json.loads(json_str)
+            res_json = json.loads(json_str)
+            res_json = {field: (res_json[field] if field in res_json else None) for field in query_fields}
+            return res_json
         else:
             raise ValueError("No JSON object found in the input string")
     except Exception as e:
         print(f"Error: {str(e)}")
-        query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
-            0].split("; ")
-        return {field.split(" :as: ")[1]: None for field in query_fields}
+        return {field: None for field in query_fields}
 
 
 def run_inference(model_path: str,
@@ -301,14 +304,16 @@ def run_inference(model_path: str,
         response = tokenizer.batch_decode(outputs[:, inputs['input_ids'].shape[1]:], skip_special_tokens=True)[0]
         response = response.strip()
         final_response = final_response + "---------\nQuestion:\n---------\n" + query_text + "\n---------\nResponse:\n---------\n" + response + "\n---------\n" + "\n\n\n\n----Separator----\n\n\n\n"
-        # print(response)
-        response = extract_json_from_string(response, query_text)
         print("\n")
         print("---------")
         print("Question:")
         print(query_text)
         print("---------")
         print("Response:")
+        print("---------")
+        print(response)
+        response = extract_json_from_string(response, query_text)
+        print("Response formatted:")
         print("---------")
         print(response)
         print(f"Time taken: {time.time() - temp_start_time} seconds")

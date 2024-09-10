@@ -24,13 +24,14 @@ COPY ./llama3_playground /app/llama3_playground
 COPY ./training-dataset /app/data/training-dataset
 COPY ./models /app/models
 COPY ./supervisord.conf /supervisord.conf
-COPY build_wheel.py /app/
-COPY setup.py /app/
-RUN cd /app && python build_wheel.py && pip install dist/llama3_playground-0.0.1-py3-none-any.whl
-RUN rm -rf /app/requirements.txt /app/build_wheel.py /app/setup.py /app/dist /app/*.egg-info /app/version.json
+#COPY build_wheel.py /app/
+#COPY setup.py /app/
+#RUN cd /app && python build_wheel.py && pip install dist/llama3_playground-0.0.1-py3-none-any.whl
+#RUN rm -rf /app/requirements.txt /app/build_wheel.py /app/setup.py /app/dist /app/*.egg-info /app/version.json
 RUN mkdir -p /app/logs/
 RUN mkdir -p /app/data/
 
+ENV PYTHONPATH=/app
 ENV EASY_OCR_MODELS_DIR="/app/models/easyocr"
 
 #RUN mkdir -p $EASY_OCR_MODELS_DIR &&  \

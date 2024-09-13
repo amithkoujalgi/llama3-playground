@@ -111,7 +111,8 @@ class YOLOv8OCR:
             option_font_scale = 0.5
             option_thickness = 2
             option_font = cv2.FONT_ITALIC
-            option_rect_diff = 3
+            # option_rect_diff = 3
+            option_rect_diff = 5
             option_rect_thickness = -1
 
             x = start_box[0]
@@ -138,14 +139,24 @@ class YOLOv8OCR:
             #     thickness=line_thickness
             # )
 
-            cv2.rectangle(image, (x - option_rect_diff, y - option_rect_diff),
-                          (x + w + option_rect_diff, y + h + option_rect_diff), option_rect_fill_color,
+            # cv2.rectangle(image, (x - option_rect_diff, y - option_rect_diff),
+            #               (x + w + option_rect_diff, y + h + option_rect_diff), option_rect_fill_color,
+            #               option_rect_thickness)
+
+            cv2.rectangle(image, (x - 2 * option_rect_diff, y - 2 * option_rect_diff),
+                          (x + w, y + h), option_rect_fill_color,
                           option_rect_thickness)
 
+            # # place text YES/NO over the checkbox
+            # image = cv2.putText(image, replacement_text, (x, y + h - option_rect_diff), option_font, option_font_scale,
+            #                     option_color,
+            #                     option_thickness)
+
             # place text YES/NO over the checkbox
-            image = cv2.putText(image, replacement_text, (x, y + h - option_rect_diff), option_font, option_font_scale,
+            image = cv2.putText(image, replacement_text, (x - 2 * option_rect_diff, y + h - 2 * option_rect_diff), option_font, option_font_scale,
                                 option_color,
                                 option_thickness)
+
             bbox = {
                 "bounding-box": {
                     "x1": int(box.xyxy[0][0]),

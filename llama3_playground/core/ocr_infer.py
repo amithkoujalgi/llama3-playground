@@ -15,7 +15,7 @@ from ultralytics import YOLO
 
 from llama3_playground.core.config import Config
 
-model_dir = "/app/data/ultralytics/trained-models"
+model_dir = "/app/data/ultralytics/trained-models/label_studio_model"
 
 
 class YOLOv8OCR:
@@ -98,7 +98,7 @@ class YOLOv8OCR:
             cls_label_numeric = box.cls[0].item()
 
             cls = 'unchecked' if cls_label_numeric == 1.0 else 'checked'
-            replacement_text = '[NO]' if cls == 'unchecked' else '[YES]'
+            replacement_text = '[ ]' if cls == 'unchecked' else '[v]'
             bool_flag = False if cls == 'unchecked' else True
 
             start_box = (int(box.xyxy[0][0]), int(box.xyxy[0][1]))
@@ -111,8 +111,8 @@ class YOLOv8OCR:
             option_font_scale = 0.5
             option_thickness = 2
             option_font = cv2.FONT_ITALIC
-            # option_rect_diff = 3
-            option_rect_diff = 5
+            option_rect_diff = 3
+            # option_rect_diff = 5
             option_rect_thickness = -1
 
             x = start_box[0]
@@ -139,23 +139,37 @@ class YOLOv8OCR:
             #     thickness=line_thickness
             # )
 
+
+            #### default
             # cv2.rectangle(image, (x - option_rect_diff, y - option_rect_diff),
             #               (x + w + option_rect_diff, y + h + option_rect_diff), option_rect_fill_color,
             #               option_rect_thickness)
-
-            cv2.rectangle(image, (x - 2 * option_rect_diff, y - 2 * option_rect_diff),
-                          (x + w, y + h), option_rect_fill_color,
-                          option_rect_thickness)
-
+            #
             # # place text YES/NO over the checkbox
             # image = cv2.putText(image, replacement_text, (x, y + h - option_rect_diff), option_font, option_font_scale,
             #                     option_color,
             #                     option_thickness)
 
+
+            #### [] or [*]
+            cv2.rectangle(image, (x - 2 * option_rect_diff, y - 2 * option_rect_diff),
+                          (x + w, y + h), option_rect_fill_color,
+                          option_rect_thickness)
+
             # place text YES/NO over the checkbox
-            image = cv2.putText(image, replacement_text, (x - 2 * option_rect_diff, y + h - 2 * option_rect_diff), option_font, option_font_scale,
+            image = cv2.putText(image, replacement_text, (x + 2 * option_rect_diff, y + h - 5*option_rect_diff), option_font, option_font_scale,
                                 option_color,
                                 option_thickness)
+
+            #### yes or no
+            # cv2.rectangle(image, (x - 2 * option_rect_diff, y - 2 * option_rect_diff),
+            #               (x + w, y + h), option_rect_fill_color,
+            #               option_rect_thickness)
+            #
+            # # place text YES/NO over the checkbox
+            # image = cv2.putText(image, replacement_text, (x - 2 * option_rect_diff, y + h - 2 * option_rect_diff), option_font, option_font_scale,
+            #                     option_color,
+            #                     option_thickness)
 
             bbox = {
                 "bounding-box": {

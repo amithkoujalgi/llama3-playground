@@ -217,11 +217,13 @@ def extract_json_from_string(input_str, query_text):
 
     query_fields = query_text.split("Extract fields:  ")[1].split(". provide the result in a json format.")[
         0].split("; ")
+    query_fields_map = {field.split(" :as: ")[0]: field.split(" :as: ")[1] for field in query_fields}
     query_fields = [field.split(" :as: ")[1] for field in query_fields]
     try:
         if json_match:
             json_str = json_match.group()
             res_json = json.loads(json_str)
+            res_json = {(query_fields_map[field] if field in query_fields_map else field): value for field, value in res_json.items()}
             res_json = {field: (res_json[field] if field in res_json else None) for field in query_fields}
             return res_json
         else:
@@ -352,32 +354,32 @@ def run_inference(model_path: str,
     print(f"Time taken: {time.time() - start_time} seconds")
 
 
-def get_coordinates_for_response(value, coord_dict):
-    if value:
-        value_tokens = value.split(" ")
-        start_coordinates = None
-        end_coordinates = None
-        try:
-            if value in coord_dict:
-                final_coordinates = coord_dict[value]
-                return final_coordinates
-            # else:
-            #     for s_idx, (s_field, s_coord) in enumerate(list(coord_dict.items())):
-            #         if s_field[0] == value_tokens[0]:
-            #             start_coordinates = s_coord
-            #             for e_idx, (e_field, e_coord) in enumerate(list(coord_dict.items())[s_idx+1:]):
-            #                 if e_field == value_tokens[-1]:
-            #                     end_coordinates = e_coord
-            #                     break
-            #         else:
-
-            #     return final_coordinates
-
-        except Exception as e:
-            print(str(e))
-            return []
-    else:
-        return []
+# def get_coordinates_for_response(value, coord_dict):
+#     if value:
+#         value_tokens = value.split(" ")
+#         start_coordinates = None
+#         end_coordinates = None
+#         try:
+#             if value in coord_dict:
+#                 final_coordinates = coord_dict[value]
+#                 return final_coordinates
+#             # else:
+#             #     for s_idx, (s_field, s_coord) in enumerate(list(coord_dict.items())):
+#             #         if s_field[0] == value_tokens[0]:
+#             #             start_coordinates = s_coord
+#             #             for e_idx, (e_field, e_coord) in enumerate(list(coord_dict.items())[s_idx+1:]):
+#             #                 if e_field == value_tokens[-1]:
+#             #                     end_coordinates = e_coord
+#             #                     break
+#             #         else:
+#
+#             #     return final_coordinates
+#
+#         except Exception as e:
+#             print(str(e))
+#             return []
+#     else:
+#         return []
 
 
 def format_result_json(result_json, db_obj):

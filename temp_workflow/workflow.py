@@ -90,7 +90,7 @@ class WorkflowRunner:
         else:
             res = response.json()
             res = json.dumps(res, indent=4)
-            print(res)
+            print('Trigger OCR run failed!')
             raise Exception(res)
 
     def check_ocr_status(self, run_id: str, poll_interval_seconds: int = 1):
@@ -132,8 +132,8 @@ class WorkflowRunner:
         }
 
         params = {
-            'llm_identifier': 'llama-3-8b-instruct-custom-1724066533-lora-adapters',
-            'max_new_tokens': '128',
+            'llm_identifier': 'llama-3-8b-instruct-custom-1724066533',
+            'max_new_tokens': '512',
             'embedding_model': 'Alibaba-NLP/gte-base-en-v1.5',
         }
 
@@ -153,7 +153,8 @@ class WorkflowRunner:
         else:
             res = response.json()
             res = json.dumps(res, indent=4)
-            print(res)
+            # print(res)
+            print("Trigger LLM Inference failed!")
             raise Exception(res)
 
     def check_llm_inference_status(self, run_id: str, poll_interval_seconds: int = 1):
@@ -183,15 +184,15 @@ class WorkflowRunner:
             else:
                 res = response.json()
                 print('LLM Inference failed!')
-                print(res['data'])
+                # print(res['data'])
                 end_time = time.time()
                 print(f'Time taken: {end_time - start_time}')
                 raise Exception(res)
 
 
-workflow = WorkflowRunner(host='http://localhost:8883')
+workflow = WorkflowRunner(host='http://20.55.102.242:8883')
 try:
-    pdf_file = '/path/to/document.pdf'
+    pdf_file = '/Users/amithkoujalgi/Downloads/document.pdf'
 
     tmp_dir = os.path.join(str(Path.home()), 'temp-data')
     os.makedirs(tmp_dir, exist_ok=True)
